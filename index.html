@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>InstaBuilt — Building the Future in 3 Days. Zero Environmental Impact.</title>
+<meta name="description" content="InstaBuilt delivers precision-engineered modular and panelized construction systems that reduce assembly times by up to 75% — certified to the highest EU and US standards." />
+<meta property="og:title" content="InstaBuilt — Building the Future in 3 Days" />
+<meta property="og:description" content="Precision-engineered modular and panelized construction. Zero environmental impact." />
+<meta property="og:image" content="assets/og-cover.jpg" />
+<link rel="icon" href="assets/logo.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<style>
+  :root{
+    --bg:#0d1114;
+    --bg-2:#12181c;
+    --bg-3:#161e23;
+    --paper:#f3f0e9;
+    --ink:#f5f2ea;
+    --ink-2:#1a1d1f;
+    --muted:#9aa6ab;
+    --muted-2:#6d787d;
+    --accent:#ff5a2c;
+    --accent-2:#e64a1e;
+    --olive:#9aa83f;
+    --olive-2:#7d8a2e;
+    --green:#57a773;
+    --line:rgba(255,255,255,.09);
+    --line-dark:rgba(20,22,24,.12);
+    --radius:14px;
+    --maxw:1240px;
+    --pad:clamp(20px,4vw,56px);
+    --font-display:'Space Grotesk',system-ui,sans-serif;
+    --font-body:'Inter',system-ui,sans-serif;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:var(--font-body);
+    background:var(--bg);
+    color:var(--ink);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  ::selection{background:var(--accent);color:#fff;}
+  a{color:inherit;text-decoration:none;}
+  img{display:block;max-width:100%;}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 var(--pad);}
+  .eyebrow{
+    font-family:var(--font-display);
+    font-size:.78rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--accent);display:inline-flex;align-items:center;gap:.6rem;
+  }
+  .eyebrow::before{content:"";width:26px;height:1.5px;background:var(--accent);}
+
+  /* ---------- NAV ---------- */
+  .nav{
+    position:fixed;top:0;left:0;right:0;z-index:100;
+    transition:background .35s ease,border-color .35s ease;
+    border-bottom:1px solid transparent;
+  }
+  .nav.scrolled{background:rgba(13,17,20,.82);backdrop-filter:blur(14px);border-color:var(--line);}
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;height:72px;}
+  .brand{display:flex;align-items:center;gap:.65rem;font-family:var(--font-display);font-weight:700;font-size:1.15rem;letter-spacing:.02em;}
+  .brand img{width:34px;height:34px;border-radius:7px;object-fit:cover;}
+  .brand span b{color:var(--accent);}
+  .nav-links{display:flex;align-items:center;gap:2rem;list-style:none;}
+  .nav-links a{font-size:.92rem;color:var(--muted);transition:color .2s;}
+  .nav-links a:hover{color:var(--ink);}
+  .nav-cta{
+    font-family:var(--font-display);font-weight:600;font-size:.9rem;
+    padding:.6rem 1.15rem;border-radius:999px;border:1px solid var(--line);
+    transition:background .25s,color .25s,border-color .25s;
+  }
+  .nav-cta:hover{background:var(--olive);border-color:var(--olive);color:#fff;}
+  .nav-toggle{display:none;background:none;border:0;cursor:pointer;width:34px;height:34px;position:relative;z-index:120;}
+  .nav-toggle span{display:block;width:22px;height:2px;background:var(--ink);margin:5px auto;transition:.3s;}
+
+  /* ---------- HERO ---------- */
+  .hero{position:relative;min-height:100svh;display:flex;align-items:flex-end;overflow:hidden;}
+  .hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;}
+  .hero-scrim{
+    position:absolute;inset:0;z-index:1;
+    background:
+      linear-gradient(180deg,rgba(13,17,20,.55) 0%,rgba(13,17,20,.25) 45%,rgba(13,17,20,.94) 100%),
+      linear-gradient(90deg,rgba(13,17,20,.62) 0%,rgba(13,17,20,.15) 60%,rgba(13,17,20,.15) 100%);
+  }
+  .hero-content{position:relative;z-index:2;width:100%;padding:150px 0 0;}
+  .hero-grid{max-width:var(--maxw);margin:0 auto;padding:0 var(--pad);}
+  .hero-title{
+    font-family:var(--font-display);font-weight:700;line-height:1.02;
+    font-size:clamp(2.4rem,6vw,5.2rem);letter-spacing:-.02em;max-width:15ch;color:#fff;
+  }
+  .hero-title .accent{color:var(--olive);}
+  .hero-sub{
+    margin-top:1.6rem;max-width:56ch;font-size:clamp(1rem,1.4vw,1.2rem);
+    color:rgba(245,242,234,.82);font-weight:400;
+  }
+  .hero-sub em{font-style:normal;color:#fff;font-weight:600;}
+  .hero-actions{display:flex;flex-wrap:wrap;gap:1rem;margin-top:2.2rem;}
+  .btn{
+    display:inline-flex;align-items:center;gap:.7rem;font-family:var(--font-display);
+    font-weight:600;font-size:1rem;border-radius:999px;cursor:pointer;
+    padding:.95rem 1.7rem;transition:transform .2s,background .25s,border-color .25s,color .25s;
+  }
+  .btn:hover{transform:translateY(-2px);}
+  .btn-primary{background:var(--olive);color:#fff;border:1px solid var(--olive);}
+  .btn-primary:hover{background:var(--olive-2);border-color:var(--olive-2);}
+  .btn-ghost{background:rgba(255,255,255,.06);color:#fff;border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(6px);}
+  .btn-ghost:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.45);}
+  .btn .play{
+    width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.16);
+    display:inline-flex;align-items:center;justify-content:center;flex:none;
+  }
+  .btn .play svg{width:13px;height:13px;margin-left:2px;}
+
+  /* stat strip */
+  .hero-stats{
+    position:relative;z-index:2;width:100%;margin-top:3.4rem;
+    border-top:1px solid rgba(255,255,255,.12);background:rgba(13,17,20,.55);backdrop-filter:blur(8px);
+  }
+  .hero-stats .wrap{display:grid;grid-template-columns:repeat(4,1fr);}
+  .stat{padding:1.5rem var(--pad) 1.5rem 0;border-right:1px solid rgba(255,255,255,.1);}
+  .stat:first-child{padding-left:var(--pad);}
+  .stat:last-child{border-right:0;}
+  .stat-num{font-family:var(--font-display);font-weight:700;font-size:clamp(1.5rem,2.6vw,2.1rem);color:#fff;line-height:1;}
+  .stat-num small{font-size:.55em;color:var(--olive);font-weight:600;margin-left:.15em;}
+  .stat-label{margin-top:.4rem;font-size:.82rem;color:var(--muted);letter-spacing:.03em;}
+
+  /* ---------- MANIFESTO ---------- */
+  .manifesto{background:var(--paper);color:var(--ink-2);padding:clamp(4rem,9vw,8rem) 0;}
+  .manifesto .eyebrow::before{background:var(--accent);}
+  .manifesto h2{
+    font-family:var(--font-display);font-weight:700;letter-spacing:-.02em;
+    font-size:clamp(1.9rem,4vw,3.2rem);line-height:1.08;max-width:24ch;margin-top:1.4rem;
+  }
+  .manifesto-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:clamp(2rem,5vw,5rem);margin-top:2.5rem;align-items:start;}
+  .manifesto p{font-size:1.06rem;color:#4a5053;max-width:52ch;}
+  .manifesto-points{list-style:none;display:flex;flex-direction:column;gap:1.4rem;}
+  .manifesto-points li{display:flex;gap:1rem;align-items:flex-start;border-top:1px solid var(--line-dark);padding-top:1.2rem;}
+  .manifesto-points li:first-child{border-top:0;padding-top:0;}
+  .mp-num{font-family:var(--font-display);font-weight:700;color:var(--accent);font-size:1.1rem;line-height:1.4;}
+  .mp-body b{display:block;font-family:var(--font-display);font-weight:600;font-size:1.05rem;}
+  .mp-body span{color:#5a6063;font-size:.95rem;}
+
+  /* ---------- SECTION HEADER ---------- */
+  .section{padding:clamp(4.5rem,9vw,7.5rem) 0;}
+  .sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:2rem;margin-bottom:clamp(2rem,4vw,3.5rem);flex-wrap:wrap;}
+  .sec-head h2{font-family:var(--font-display);font-weight:700;letter-spacing:-.02em;font-size:clamp(1.8rem,3.6vw,2.9rem);line-height:1.05;max-width:20ch;}
+  .sec-head p{color:var(--muted);max-width:42ch;font-size:1rem;}
+
+  /* ---------- SOLUTIONS ---------- */
+  .solutions{background:var(--bg);}
+  .sol-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:1.1rem;}
+  .sol-card{
+    position:relative;border-radius:var(--radius);overflow:hidden;background:var(--bg-2);
+    border:1px solid var(--line);min-height:320px;display:flex;align-items:flex-end;
+    transition:transform .35s ease,border-color .35s ease;
+  }
+  .sol-card:hover{transform:translateY(-4px);border-color:rgba(255,255,255,.22);}
+  .sol-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .6s ease;}
+  .sol-card:hover img{transform:scale(1.05);}
+  .sol-card .veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,17,20,0) 30%,rgba(13,17,20,.9) 100%);}
+  .sol-card .body{position:relative;z-index:2;padding:1.4rem;width:100%;}
+  .sol-card .tag{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600;font-family:var(--font-display);}
+  .sol-card h3{font-family:var(--font-display);font-weight:600;font-size:1.25rem;margin-top:.3rem;color:#fff;}
+  .sol-card .sizes{font-size:.85rem;color:rgba(255,255,255,.72);margin-top:.3rem;}
+  .sol-card.wide{grid-column:span 7;}
+  .sol-card.tall{grid-column:span 5;min-height:320px;}
+  .sol-card.half{grid-column:span 6;min-height:260px;}
+  .sol-card.third{grid-column:span 4;min-height:260px;}
+
+  /* ---------- WHAT WE OFFER ---------- */
+  .offer{background:var(--bg-2);}
+  .offer-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.1rem;counter-reset:offer;}
+  .offer-item{
+    background:var(--bg-3);border:1px solid var(--line);border-radius:var(--radius);
+    padding:2rem;position:relative;overflow:hidden;display:flex;flex-direction:column;gap:1rem;
+  }
+  .offer-item .idx{font-family:var(--font-display);font-weight:700;font-size:3rem;line-height:1;color:rgba(255,255,255,.08);}
+  .offer-item h3{font-family:var(--font-display);font-weight:600;font-size:1.3rem;}
+  .offer-item p{color:var(--muted);font-size:.95rem;}
+  .offer-item ul{list-style:none;display:flex;flex-direction:column;gap:.55rem;margin-top:auto;}
+  .offer-item li{font-size:.9rem;color:#c6ced1;display:flex;gap:.6rem;align-items:baseline;}
+  .offer-item li::before{content:"—";color:var(--accent);font-weight:600;}
+  .offer-item .img{height:150px;border-radius:10px;overflow:hidden;margin-top:auto;}
+  .offer-item .img img{width:100%;height:100%;object-fit:cover;}
+
+  /* ---------- TEAM ---------- */
+  .team{background:var(--bg);}
+  .team-lead{
+    display:grid;grid-template-columns:1fr 1.35fr;gap:clamp(1.8rem,4vw,3.5rem);align-items:center;
+    background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius);
+    padding:clamp(1.6rem,3vw,2.6rem);margin-bottom:2.5rem;
+  }
+  .team-lead .photo{border-radius:12px;overflow:hidden;aspect-ratio:1/1;background:var(--bg-3);}
+  .team-lead .photo img{width:100%;height:100%;object-fit:cover;}
+  .team-lead h3{font-family:var(--font-display);font-weight:700;font-size:clamp(1.5rem,2.6vw,2.1rem);letter-spacing:-.01em;margin-top:.6rem;color:#fff;}
+  .team-lead .role{font-family:var(--font-display);font-weight:600;color:var(--olive);font-size:.95rem;letter-spacing:.08em;text-transform:uppercase;margin-top:.3rem;}
+  .team-lead p{color:var(--muted);font-size:.98rem;margin-top:1rem;max-width:60ch;}
+  .team-lead .pills{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.4rem;}
+  .team-lead .pills span{font-size:.8rem;padding:.35rem .8rem;border-radius:999px;border:1px solid var(--line);color:#c6ced1;}
+  .team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.1rem;}
+  .member{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;transition:transform .3s,border-color .3s;}
+  .member:hover{transform:translateY(-4px);border-color:rgba(255,255,255,.22);}
+  .member .photo{aspect-ratio:1/1;overflow:hidden;background:var(--bg-3);}
+  .member .photo img{width:100%;height:100%;object-fit:cover;transition:transform .55s ease;}
+  .member:hover .photo img{transform:scale(1.05);}
+  .member .info{padding:1.1rem 1.3rem 1.3rem;}
+  .member .name{font-family:var(--font-display);font-weight:600;font-size:1.08rem;color:#fff;}
+  .member .role{font-size:.85rem;color:var(--olive);font-weight:600;margin-top:.3rem;letter-spacing:.01em;}
+
+  /* ---------- SUSTAINABILITY ---------- */
+  .sustain{background:linear-gradient(180deg,#0f1511 0%,#10160f 100%);border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+  .sustain-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:clamp(2rem,5vw,4.5rem);align-items:center;}
+  .sustain h2{font-family:var(--font-display);font-weight:700;font-size:clamp(1.8rem,3.4vw,2.8rem);letter-spacing:-.02em;line-height:1.05;margin-top:1.2rem;color:#eef5ee;}
+  .sustain .lead{color:#a9b8ab;margin-top:1.3rem;max-width:52ch;}
+  .sustain-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:2.4rem;}
+  .sustain-fact{border-top:1px solid rgba(255,255,255,.12);padding-top:1rem;}
+  .sustain-fact .k{font-family:var(--font-display);font-weight:700;color:var(--green);font-size:1.05rem;}
+  .sustain-fact span{display:block;font-size:.88rem;color:#a9b8ab;margin-top:.3rem;}
+  .sustain-img{border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);}
+  .sustain-img img{width:100%;height:100%;object-fit:cover;aspect-ratio:4/3;}
+
+  /* ---------- LOCATIONS ---------- */
+  .locations{background:var(--bg);}
+  .loc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.1rem;}
+  .loc-card{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius);padding:2rem;}
+  .loc-card .flag{font-family:var(--font-display);font-weight:600;color:var(--accent);letter-spacing:.12em;text-transform:uppercase;font-size:.78rem;}
+  .loc-card h3{font-family:var(--font-display);font-weight:600;font-size:1.35rem;margin-top:.5rem;}
+  .loc-card p{color:var(--muted);margin-top:.6rem;font-size:.95rem;}
+
+  /* ---------- EVENTS ---------- */
+  .events{background:var(--bg-2);}
+  .events-list{list-style:none;border-top:1px solid var(--line);}
+  .ev-row{
+    display:flex;align-items:center;justify-content:space-between;gap:1.5rem;
+    padding:1.4rem 0;border-bottom:1px solid var(--line);transition:padding-left .3s;
+  }
+  .ev-row:hover{padding-left:.6rem;}
+  .ev-city{font-family:var(--font-display);font-weight:600;font-size:1.15rem;color:#fff;min-width:180px;}
+  .ev-name{color:var(--muted);font-size:.95rem;flex:1;}
+  .ev-name b{color:#c6ced1;font-weight:500;}
+  .ev-row .arrow{color:var(--accent);opacity:0;transform:translateX(-6px);transition:.3s;}
+  .ev-row:hover .arrow{opacity:1;transform:translateX(0);}
+
+  /* ---------- CTA ---------- */
+  .final-cta{
+    position:relative;background:var(--olive);color:#fff;overflow:hidden;
+    padding:clamp(4rem,8vw,6.5rem) 0;
+  }
+  .final-cta::before{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(120% 120% at 80% 20%,rgba(255,255,255,.14) 0%,rgba(255,255,255,0) 55%);
+  }
+  .final-cta .wrap{position:relative;z-index:2;}
+  .final-cta h2{font-family:var(--font-display);font-weight:700;font-size:clamp(2rem,4.5vw,3.4rem);letter-spacing:-.02em;line-height:1.04;max-width:20ch;}
+  .final-cta p{margin-top:1.2rem;font-size:1.05rem;max-width:52ch;color:rgba(255,255,255,.9);}
+  .final-cta .hero-actions{margin-top:2.2rem;}
+  .final-cta .btn-primary{background:#101418;border-color:#101418;color:#fff;}
+  .final-cta .btn-primary:hover{background:#000;}
+  .final-cta .btn-ghost{background:rgba(0,0,0,.18);border-color:rgba(255,255,255,.4);color:#fff;}
+  .final-cta .btn-ghost:hover{background:rgba(0,0,0,.3);}
+
+  /* ---------- FOOTER ---------- */
+  footer{background:var(--bg);padding:3.5rem 0 2rem;border-top:1px solid var(--line);}
+  .foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:2rem;}
+  .foot-brand p{color:var(--muted);font-size:.9rem;max-width:30ch;margin-top:.8rem;}
+  .foot-col h4{font-family:var(--font-display);font-weight:600;font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted-2);margin-bottom:1rem;}
+  .foot-col ul{list-style:none;display:flex;flex-direction:column;gap:.6rem;}
+  .foot-col a{color:var(--muted);font-size:.9rem;transition:color .2s;}
+  .foot-col a:hover{color:var(--ink);}
+  .socials{display:flex;gap:.7rem;margin-top:1.2rem;}
+  .socials a{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);transition:.2s;}
+  .socials a:hover{color:#fff;border-color:var(--olive);background:var(--olive);}
+  .socials svg{width:16px;height:16px;}
+  .foot-bottom{display:flex;justify-content:space-between;gap:1rem;margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--line);color:var(--muted-2);font-size:.82rem;flex-wrap:wrap;}
+
+  /* ---------- MODAL ---------- */
+  .modal{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:2rem;}
+  .modal.open{display:flex;}
+  .modal-inner{position:relative;width:min(1000px,100%);aspect-ratio:16/9;background:#000;border-radius:14px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6);}
+  .modal video{width:100%;height:100%;object-fit:contain;}
+  .modal-close{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.12);color:#fff;font-size:1.3rem;cursor:pointer;z-index:5;line-height:1;}
+  .modal-close:hover{background:var(--olive);}
+
+  /* ---------- REVEAL ---------- */
+  .reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease;}
+  .reveal.in{opacity:1;transform:none;}
+
+  @media (max-width:900px){
+    .nav-links{position:fixed;inset:0;background:var(--bg);flex-direction:column;justify-content:center;gap:2rem;font-size:1.4rem;transform:translateX(100%);transition:transform .35s ease;z-index:110;}
+    .nav-links.open{transform:translateX(0);}
+    .nav-toggle{display:block;}
+    .manifesto-grid{grid-template-columns:1fr;}
+    .sol-card.wide,.sol-card.tall,.sol-card.half,.sol-card.third{grid-column:span 12;}
+    .offer-grid{grid-template-columns:1fr;}
+    .team-lead{grid-template-columns:1fr;}
+    .team-grid{grid-template-columns:repeat(2,1fr);}
+    .sustain-grid{grid-template-columns:1fr;}
+    .loc-grid{grid-template-columns:1fr;}
+    .foot-grid{grid-template-columns:1fr 1fr;}
+    .hero-stats .wrap{grid-template-columns:repeat(2,1fr);}
+    .stat:nth-child(2){border-right:0;}
+    .stat:nth-child(1),.stat:nth-child(2){border-bottom:1px solid rgba(255,255,255,.1);}
+  }
+  @media (max-width:560px){
+    .sustain-cols{grid-template-columns:1fr;}
+    .team-grid{grid-template-columns:1fr;}
+    .foot-grid{grid-template-columns:1fr;}
+    .ev-row{flex-wrap:wrap;}
+    .ev-city{min-width:100%;}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important;scroll-behavior:auto!important;}
+    .reveal{opacity:1;transform:none;}
+    .hero-video{display:none;}
+    .hero{background:url('assets/og-cover.jpg') center/cover no-repeat;}
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav" id="nav">
+  <div class="wrap nav-inner">
+    <a href="#" class="brand"><img src="assets/logo.png" alt="InstaBuilt logo" />Insta<span>Built</span></a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#solutions">Solutions</a></li>
+      <li><a href="#offer">Construction System</a></li>
+      <li><a href="#team">Our People</a></li>
+      <li><a href="#sustainability">Sustainability</a></li>
+      <li><a href="#locations">Locations</a></li>
+      <li><a href="#events">Events</a></li>
+      <li><a href="#contact" class="nav-cta">Get Your Offer</a></li>
+    </ul>
+    <button class="nav-toggle" id="navToggle" aria-label="Menu"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero" id="top">
+  <video class="hero-video" autoplay muted loop playsinline preload="auto" poster="assets/og-cover.jpg">
+    <source src="assets/hero-build.mp4" type="video/mp4" />
+  </video>
+  <div class="hero-scrim"></div>
+
+  <div class="hero-content">
+    <div class="hero-grid">
+      <span class="eyebrow" style="color:#fff;">Modular &amp; Panelized Construction</span>
+      <h1 class="hero-title">Building the Future in <span class="accent">3 Days.</span> Zero Environmental Impact.</h1>
+      <p class="hero-sub">
+        InstaBuilt delivers precision-engineered modular and panelized construction systems that
+        reduce assembly times by <em>up to 75%</em> — certified to the highest EU and US standards.
+      </p>
+      <div class="hero-actions">
+        <a href="#contact" class="btn btn-primary">Get Your Offer <span style="font-size:.82em;font-weight:500;opacity:.85;">/ Customize Your Project</span></a>
+        <button class="btn btn-ghost" id="watchBtn">
+          <span class="play"><svg viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></span>
+          Watch the 3-Day Build
+        </button>
+      </div>
+    </div>
+
+    <div class="hero-stats">
+      <div class="wrap">
+        <div class="stat"><div class="stat-num">265<small>m²</small></div><div class="stat-label">Two-story home footprint</div></div>
+        <div class="stat"><div class="stat-num">3</div><div class="stat-label">Trucks to transport</div></div>
+        <div class="stat"><div class="stat-num">72<small>h</small></div><div class="stat-label">On-site erection time</div></div>
+        <div class="stat"><div class="stat-num">75<small>%</small></div><div class="stat-label">Faster than conventional build</div></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- MANIFESTO -->
+<section class="manifesto">
+  <div class="wrap reveal">
+    <span class="eyebrow">Who we are</span>
+    <h2>We build smarter, greener, and faster.</h2>
+    <div class="manifesto-grid">
+      <p>
+        InstaBuilt delivers innovative offsite construction and real-estate solutions that maximize
+        efficiency, sustainability, and quality. Our modular and panel systems ensure cost-effective,
+        high-performance buildings that optimize time and resources — and make a lasting impact on the
+        communities we serve.
+      </p>
+      <ul class="manifesto-points">
+        <li><span class="mp-num">01</span><div class="mp-body"><b>Serial construction</b><span>Cutting-edge offsite building systems, repeated at scale.</span></div></li>
+        <li><span class="mp-num">02</span><div class="mp-body"><b>EU &amp; US certified</b><span>Partnering across Europe and the U.S. (Texas) on permitted projects.</span></div></li>
+        <li><span class="mp-num">03</span><div class="mp-body"><b>Primary focus</b><span>Germany, Switzerland, and Austria — plus North America.</span></div></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- SOLUTIONS -->
+<section class="section solutions" id="solutions">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <h2>One system.<br />Every kind of building.</h2>
+      <p>From pop-up homes to multistory developments, InstaBuilt's offsite systems scale to any project.</p>
+    </div>
+    <div class="sol-grid">
+      <a class="sol-card wide reveal" href="#contact">
+        <img src="assets/popup-exterior-night.jpg" alt="InstaBuilt PopUp Solutions exterior at night" />
+        <div class="veil"></div>
+        <div class="body"><div class="tag">PopUp Solutions</div><h3>Plug-in living, ready on arrival</h3><div class="sizes">Available in 28 m² · 52 m² · 104 m²</div></div>
+      </a>
+      <a class="sol-card tall reveal" href="#contact">
+        <img src="assets/multistory-multifamily.jpg" alt="Multistory multifamily building" />
+        <div class="veil"></div>
+        <div class="body"><div class="tag">Multistory · Multifamily</div><h3>Elevate your life to new heights</h3></div>
+      </a>
+      <a class="sol-card half reveal" href="#contact">
+        <img src="assets/modern-apartments.jpg" alt="Modern apartments" />
+        <div class="veil"></div>
+        <div class="body"><div class="tag">Micro Apartments</div><h3>Smart urban density</h3></div>
+      </a>
+      <a class="sol-card half reveal" href="#contact">
+        <img src="assets/senior-solution.jpg" alt="Senior housing solution" />
+        <div class="veil"></div>
+        <div class="body"><div class="tag">Senior Housing</div><h3>Dignified, accessible living</h3></div>
+      </a>
+      <a class="sol-card third reveal" href="#contact">
+        <img src="assets/Traditional-house.jpeg" alt="Traditional home" />
+        <div class="veil"></div>
+        <div class="body"><div class="tag">Traditional Homes</div><h3>EU / US classics</h3></div>
+      </a>
+      <a class="sol-card third reveal" href="#contact">
+        <img src="assets/signature-home.jpg" alt="Signature home" />
+        <div class="veil"></div>
+        <div class="body"><div class="tag">Signature Homes</div><h3>Bespoke architecture</h3></div>
+      </a>
+      <a class="sol-card third reveal" href="#contact">
+        <img src="assets/modular-construction.jpg" alt="Modular construction" />
+        <div class="veil"></div>
+        <div class="body"><div class="tag">Bathpods &amp; Modules</div><h3>Factory-built precision</h3></div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- WHAT WE OFFER -->
+<section class="section offer" id="offer">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <h2>What we offer</h2>
+      <p>Three integrated systems that cut cost, time, and environmental footprint on every build.</p>
+    </div>
+    <div class="offer-grid">
+      <div class="offer-item reveal">
+        <div class="idx">01</div>
+        <h3>Panelized Systems</h3>
+        <p>Precision-engineered panel systems for large-scale developments.</p>
+        <ul>
+          <li>Structural shells (Rohbau) that accelerate on-site assembly</li>
+          <li>Flexible designs, adaptable to diverse architectural needs</li>
+        </ul>
+        <div class="img"><img src="assets/panelized-systems.png" alt="Panelized systems" /></div>
+      </div>
+      <div class="offer-item reveal">
+        <div class="idx">02</div>
+        <h3>Sustainability &amp; Efficiency</h3>
+        <p>Certified low-energy performance built in from day one.</p>
+        <ul>
+          <li>KfW40 Standard — lower emissions &amp; operational costs</li>
+          <li>Offsite build minimizes material waste</li>
+          <li>Faster timelines = reduced labor &amp; financial cost</li>
+        </ul>
+        <div class="img"><img src="assets/sustainability-efficiency.png" alt="Sustainability and efficiency" /></div>
+      </div>
+      <div class="offer-item reveal">
+        <div class="idx">03</div>
+        <h3>Modular Construction</h3>
+        <p>Pre-engineered, factory-built modules for residential and mixed-use developments.</p>
+        <ul>
+          <li>Fast-track construction, reducing build time by up to 75%</li>
+          <li>Eco-friendly materials for long-term energy efficiency</li>
+        </ul>
+        <div class="img"><img src="assets/modular-construction.jpg" alt="Modular construction" /></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TEAM -->
+<section class="section team" id="team">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <h2>The people building the future</h2>
+      <p>Behind every project is a team of dedicated professionals committed to excellence — bringing bold ideas to life with precision and passion.</p>
+    </div>
+
+    <!-- Leadership spotlight -->
+    <div class="team-lead reveal">
+      <div class="photo"><img src="assets/team-Mentor-Pllana.png" alt="Mentor Pllana, CEO of InstaBuilt" /></div>
+      <div>
+        <span class="eyebrow" style="color:var(--olive);">Leadership</span>
+        <h3>Mentor Pllana</h3>
+        <div class="role">CEO — InstaBuilt</div>
+        <p>
+          A visionary leader at Pllana Capital, Mentor combines expertise in real estate, construction
+          technology, and global project management to revolutionize infrastructure development. Driven by
+          a passion for innovation and sustainability, he integrates advanced technologies like AI and IoT
+          into construction, promoting green building practices worldwide. Through his 5P Business Strategy
+          — People, Process, Product, Project, Profit — he ensures operational excellence and ethical profitability.
+        </p>
+        <div class="pills">
+          <span>Real Estate</span><span>Construction Tech</span><span>AI &amp; IoT</span><span>Green Building</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team grid -->
+    <div class="team-grid">
+      <div class="member reveal">
+        <div class="photo"><img src="assets/team-Besnik-Pllana.jpg" alt="Besnik Pllana" /></div>
+        <div class="info"><div class="name">Besnik Pllana</div><div class="role">COO — Founder</div></div>
+      </div>
+      <div class="member reveal">
+        <div class="photo"><img src="assets/team-Ibrahim-Ibrahimi.jpg" alt="Ibrahim Ibrahimi" /></div>
+        <div class="info"><div class="name">Ibrahim Ibrahimi</div><div class="role">CFO — Chief Financial Officer</div></div>
+      </div>
+      <div class="member reveal">
+        <div class="photo"><img src="assets/team-Diedon-Kica.jpg" alt="Diedon Kica" /></div>
+        <div class="info"><div class="name">Diedon Kica</div><div class="role">CCO — Chief Commercial Officer</div></div>
+      </div>
+      <div class="member reveal">
+        <div class="photo"><img src="assets/team-Shpetim-Pllana.png" alt="Shpëtim Pllana" /></div>
+        <div class="info"><div class="name">Shpëtim Pllana</div><div class="role">CTO — Chief Technical Director</div></div>
+      </div>
+      <div class="member reveal">
+        <div class="photo"><img src="assets/team-Arta-Pllana.jpg" alt="Arta Pllana" /></div>
+        <div class="info"><div class="name">Arta Pllana</div><div class="role">Sales Lead</div></div>
+      </div>
+      <div class="member reveal">
+        <div class="photo"><img src="assets/team-Drin-Kelmendi.jpg" alt="Drin Kelmendi" /></div>
+        <div class="info"><div class="name">Drin Kelmendi</div><div class="role">Marketing Team Lead</div></div>
+      </div>
+      <div class="member reveal">
+        <div class="photo"><img src="assets/team-Artan-Djemajlji.jpg" alt="Artan Djemajlji" /></div>
+        <div class="info"><div class="name">Artan Djemajlji</div><div class="role">Business Development Manager, Benelux</div></div>
+      </div>
+      <div class="member reveal">
+        <div class="photo"><img src="assets/team-Arlind-Shporta.png" alt="Arlind Shporta" /></div>
+        <div class="info"><div class="name">Arlind Shporta</div><div class="role">Procurement &amp; Logistics Manager</div></div>
+      </div>
+      <div class="member reveal">
+        <div class="photo"><img src="assets/team-Besart-Hajrizi.jpg" alt="Besart Hajrizi" /></div>
+        <div class="info"><div class="name">Besart Hajrizi</div><div class="role">Insta Innovation Center Associate</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SUSTAINABILITY -->
+<section class="section sustain" id="sustainability">
+  <div class="wrap sustain-grid">
+    <div class="reveal">
+      <span class="eyebrow" style="color:var(--green);">Sustainability</span>
+      <h2>Zero environmental impact is the brief, not a bonus.</h2>
+      <p class="lead">
+        Offsite construction is inherently cleaner: less waste, less site disruption, and tighter
+        energy envelopes that pay back for decades. Every InstaBuilt system is engineered to the
+        highest EU and US certification standards.
+      </p>
+      <div class="sustain-cols">
+        <div class="sustain-fact"><div class="k">KfW40</div><span>Energy-efficient buildings that lower emissions and operating cost.</span></div>
+        <div class="sustain-fact"><div class="k">Less waste</div><span>Factory precision minimizes material waste on every project.</span></div>
+        <div class="sustain-fact"><div class="k">Eco materials</div><span>Long-term energy efficiency from sustainable, durable materials.</span></div>
+      </div>
+    </div>
+    <div class="sustain-img reveal">
+      <img src="assets/instabuilt-innovation-center.jpg" alt="InstaBuilt Innovation Center" />
+    </div>
+  </div>
+</section>
+
+<!-- LOCATIONS -->
+<section class="section locations" id="locations">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <h2>Where we build</h2>
+      <p>Two continents, one standard of precision — partnering on permitted projects across the EU and U.S.</p>
+    </div>
+    <div class="loc-grid">
+      <div class="loc-card reveal">
+        <div class="flag">Europe</div>
+        <h3>InstaBuilt Europe</h3>
+        <p>Street Victoria, Prishtina–Mitrovica Highway 12km, Kosovo</p>
+      </div>
+      <div class="loc-card reveal">
+        <div class="flag">North America</div>
+        <h3>InstaBuilt North America</h3>
+        <p>3500 S Dupont Hwy, Dover, DE 19901, United States</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EVENTS -->
+<section class="section events" id="events">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <h2>Events &amp; exhibitions</h2>
+      <p>Meet InstaBuilt where the industry gathers.</p>
+    </div>
+    <ul class="events-list reveal">
+      <li class="ev-row"><span class="ev-city">Davos</span><span class="ev-name">InstaBuilt at <b>House of Kosova</b> — Switzerland</span><span class="arrow">→</span></li>
+      <li class="ev-row"><span class="ev-city">Munich</span><span class="ev-name">InstaBuilt at <b>EXPO REAL</b> — Germany</span><span class="arrow">→</span></li>
+      <li class="ev-row"><span class="ev-city">Berlin</span><span class="ev-name">InstaBuilt at <b>Berlin Blockchain Week</b> — Germany</span><span class="arrow">→</span></li>
+      <li class="ev-row"><span class="ev-city">Zug</span><span class="ev-name">InstaBuilt at <b>Crypto Valley Conference</b> — Switzerland</span><span class="arrow">→</span></li>
+      <li class="ev-row"><span class="ev-city">Las Vegas</span><span class="ev-name">InstaBuilt at <b>Blueprint</b> — USA</span><span class="arrow">→</span></li>
+      <li class="ev-row"><span class="ev-city">Denver</span><span class="ev-name">InstaBuilt at <b>Housing Innovation Summit</b> — USA</span><span class="arrow">→</span></li>
+      <li class="ev-row"><span class="ev-city">RETCON</span><span class="ev-name">InstaBuilt at <b>RETCON</b></span><span class="arrow">→</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final-cta" id="contact">
+  <div class="wrap reveal">
+    <span class="eyebrow" style="color:rgba(255,255,255,.9);">Ready to develop your next project?</span>
+    <h2>Let's turn your vision into reality.</h2>
+    <p>Reach out and let's create something extraordinary together — from a single pop-up home to a full multistory development.</p>
+    <div class="hero-actions">
+      <a href="mailto:info@instabuilt.com?subject=Get%20My%20Offer%20—%20Custom%20Project" class="btn btn-primary">Get Your Offer</a>
+      <button class="btn btn-ghost" id="watchBtn2"><span class="play"><svg viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></span>Watch the 3-Day Build</button>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a href="#" class="brand"><img src="assets/logo.png" alt="InstaBuilt logo" />Insta<span>Built</span></a>
+        <p>Building the future in 3 days — zero environmental impact. Modular and panelized construction, certified to the highest EU and US standards.</p>
+        <div class="socials">
+          <a href="https://www.youtube.com/@InstaBuilt" target="_blank" rel="noopener" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.6 15.6V8.4L15.8 12l-6.2 3.6z"/></svg></a>
+          <a href="https://www.linkedin.com/company/instabuilt" target="_blank" rel="noopener" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5A2.5 2.5 0 1 1 0 3.5a2.5 2.5 0 0 1 4.98 0zM.2 8.4h4.6V24H.2zM8.2 8.4h4.4v2.1h.1c.6-1.2 2.1-2.5 4.4-2.5 4.7 0 5.6 3.1 5.6 7.1V24h-4.6v-7.9c0-1.9 0-4.3-2.6-4.3s-3 2-3 4.1V24H8.2z"/></svg></a>
+          <a href="https://www.facebook.com/instabuilt" target="_blank" rel="noopener" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12a12 12 0 1 0-13.9 11.9v-8.4H7.1V12h3V9.4c0-3 1.8-4.7 4.5-4.7 1.3 0 2.7.2 2.7.2v3h-1.5c-1.5 0-2 .9-2 1.9V12h3.3l-.5 3.5h-2.8v8.4A12 12 0 0 0 24 12z"/></svg></a>
+          <a href="https://www.instagram.com/instabuilt" target="_blank" rel="noopener" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.2c3.2 0 3.6 0 4.9.1 1.2.1 1.8.2 2.2.4.6.2 1 .5 1.4.9.4.4.7.8.9 1.4.2.4.4 1 .4 2.2.1 1.3.1 1.7.1 4.9s0 3.6-.1 4.9c-.1 1.2-.2 1.8-.4 2.2a3.8 3.8 0 0 1-.9 1.4c-.4.4-.8.7-1.4.9-.4.2-1 .4-2.2.4-1.3.1-1.7.1-4.9.1s-3.6 0-4.9-.1c-1.2-.1-1.8-.2-2.2-.4a3.8 3.8 0 0 1-1.4-.9 3.8 3.8 0 0 1-.9-1.4c-.2-.4-.4-1-.4-2.2C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.9c.1-1.2.2-1.8.4-2.2.2-.6.5-1 .9-1.4.4-.4.8-.7 1.4-.9.4-.2 1-.4 2.2-.4C8.4 2.2 8.8 2.2 12 2.2zm0 1.8c-3.1 0-3.5 0-4.7.1-1.1.1-1.7.2-2.1.4-.5.2-.9.4-1.2.8-.4.3-.6.7-.8 1.2-.2.4-.3 1-.4 2.1-.1 1.2-.1 1.6-.1 4.7s0 3.5.1 4.7c.1 1.1.2 1.7.4 2.1.2.5.4.9.8 1.2.3.4.7.6 1.2.8.4.2 1 .3 2.1.4 1.2.1 1.6.1 4.7.1s3.5 0 4.7-.1c1.1-.1 1.7-.2 2.1-.4.5-.2.9-.4 1.2-.8.4-.3.6-.7.8-1.2.2-.4.3-1 .4-2.1.1-1.2.1-1.6.1-4.7s0-3.5-.1-4.7c-.1-1.1-.2-1.7-.4-2.1a2.6 2.6 0 0 0-.8-1.2 2.6 2.6 0 0 0-1.2-.8c-.4-.2-1-.3-2.1-.4-1.2-.1-1.6-.1-4.7-.1zm0 3a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 1.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4zm5.2-3.1a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4z"/></svg></a>
+        </div>
+      </div>
+      <div class="foot-col">
+        <h4>Our Solutions</h4>
+        <ul>
+          <li><a href="#solutions">PopUp Solutions</a></li>
+          <li><a href="#solutions">Multistory–Multifamily</a></li>
+          <li><a href="#solutions">Senior Housing</a></li>
+          <li><a href="#solutions">Micro Apartments</a></li>
+          <li><a href="#solutions">Traditional Homes EU/US</a></li>
+          <li><a href="#solutions">Signature Homes</a></li>
+        </ul>
+      </div>
+      <div class="foot-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="#offer">Construction System</a></li>
+          <li><a href="#sustainability">Sustainability</a></li>
+          <li><a href="#locations">Locations</a></li>
+          <li><a href="#events">Events</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </div>
+      <div class="foot-col">
+        <h4>Contact Us</h4>
+        <ul>
+          <li><a href="mailto:info@instabuilt.com">info@instabuilt.com</a></li>
+          <li><a href="#locations">InstaBuilt Europe — Kosovo</a></li>
+          <li><a href="#locations">InstaBuilt NA — Dover, DE</a></li>
+          <li><a href="#contact">Get Your Offer</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 INSTABUILT. All rights reserved.</span>
+      <span><a href="#" style="color:inherit;">Privacy Policy</a> · <a href="#" style="color:inherit;">Legal</a></span>
+    </div>
+  </div>
+</footer>
+
+<!-- VIDEO MODAL -->
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="3-Day Build video">
+  <div class="modal-inner">
+    <button class="modal-close" id="modalClose" aria-label="Close">×</button>
+    <video id="modalVideo" controls playsinline preload="none">
+      <source src="assets/hero-build.mp4" type="video/mp4" />
+    </video>
+  </div>
+</div>
+
+<script>
+  // Sticky nav
+  const nav = document.getElementById('nav');
+  const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 40);
+  window.addEventListener('scroll', onScroll, {passive:true}); onScroll();
+
+  // Mobile nav
+  const toggle = document.getElementById('navToggle');
+  const links = document.getElementById('navLinks');
+  toggle.addEventListener('click', () => links.classList.toggle('open'));
+  links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => links.classList.remove('open')));
+
+  // Video modal
+  const modal = document.getElementById('modal');
+  const modalVideo = document.getElementById('modalVideo');
+  const openModal = () => { modal.classList.add('open'); modalVideo.play().catch(()=>{}); };
+  document.getElementById('watchBtn').addEventListener('click', openModal);
+  document.getElementById('watchBtn2').addEventListener('click', openModal);
+  const closeModal = () => { modalVideo.pause(); modal.classList.remove('open'); };
+  document.getElementById('modalClose').addEventListener('click', closeModal);
+  modal.addEventListener('click', e => { if(e.target === modal) closeModal(); });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape') closeModal(); });
+
+  // Reveal on scroll
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, {threshold:0.12});
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body>
+</html>
