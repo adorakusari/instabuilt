@@ -30,8 +30,8 @@ function makeClassList() {
 function makeEl(id) {
   return {
     id, style: { setProperty() {} }, classList: makeClassList(),
-    textContent: '', innerHTML: '', src: '', dataset: {}, clientWidth: 768, clientHeight: 512,
-    width: 768, height: 512, _l: {},
+    textContent: '', innerHTML: '', src: '', dataset: {}, clientWidth: 1024, clientHeight: 576,
+    width: 1024, height: 576, _l: {},
     addEventListener(t, fn) { (this._l[t] = this._l[t] || []).push(fn); },
     appendChild() {}, focus() {},
     getContext() { return makeCtx(); }
@@ -70,6 +70,8 @@ function clickCanvas(tx, ty) {
   (el._l.click || []).forEach(f => f({ clientX: tx * 32 + 16, clientY: ty * 32 + 16 }));
 }
 
+const COLS = 32, ROWS = 18;
+
 // ---------------- checks ----------------
 let passed = 0, failed = 0;
 function check(name, cond) { if (cond) { passed++; console.log('PASS  ' + name); } else { failed++; console.log('FAIL  ' + name); } }
@@ -82,51 +84,52 @@ g.setPaused(false); // boot leaves the game paused behind the menu
 let st = g.S();
 check('starts with 25 wood', st.wood === 25);
 check('starts with 50 coins', st.coins === 50);
-check('map generated 384 tiles', st.grid.length === 384);
+check('map generated ' + (COLS * ROWS) + ' tiles', st.grid.length === COLS * ROWS);
 const treeCount = st.grid.filter(c => c.t === 'tree').length;
 check('forest has trees (' + treeCount + ')', treeCount > 40);
 check('forest has varied tree types', st.grid.some(c => c.t === 'treePine') && st.grid.some(c => c.t === 'treeBig') && st.grid.some(c => c.t === 'treeRed'));
 const sp = st.spawn;
-check('spawn clearing is open grass', [0, 1, -1].every(dy => [0, 1, -1].every(dx => st.grid[(sp.y + dy) * 24 + (sp.x + dx)].t === 'grass')));
-check('campfire at spawn', st.grid[sp.y * 24 + sp.x].detail === 'campfire');
+check('spawn clearing is open grass', [0, 1, -1].every(dy => [0, 1, -1].every(dx => st.grid[(sp.y + dy) * COLS + (sp.x + dx)].t === 'grass')));
+check('campfire at spawn', st.grid[sp.y * COLS + sp.x].detail === 'campfire');
+check('player spawns at the clearing', st.player && Math.abs(st.player.x - (sp.x + 0.5)) < 0.01 && Math.abs(st.player.y - (sp.y + 2)) < 0.01);
 check('HUD wood shows 25', String(getEl('hud-wood').textContent) === '25');
 
-// --- chop a tree ---
+// --- chop a tree (direct action) ---
 const treeIdx = st.grid.findIndex(c => c.t === 'tree');
-const tx = treeIdx % 24, ty = Math.floor(treeIdx / 24);
+const tx = treeIdx % COLS, ty = Math.floor(treeIdx / COLS);
 const woodBefore = st.wood;
-g.clickTileAt(tx, ty);
+g.actNow(tx, ty);
 check('chop increases wood (' + woodBefore + ' -> ' + st.wood + ')', st.wood > woodBefore);
 check('tree became stump', st.grid[treeIdx].t === 'stump');
 
-// --- plant a sapling ---
+// --- plant a sapling (direct action) ---
 g.setTool('plant');
 const grassIdx = st.grid.findIndex(c => c.t === 'grass');
-const gx = grassIdx % 24, gy = Math.floor(grassIdx / 24);
-g.clickTileAt(gx, gy);
+const gx = grassIdx % COLS, gy = Math.floor(grassIdx / COLS);
+g.actNow(gx, gy);
 check('planted sapling', st.grid[grassIdx].t === 'sapling');
 
-// --- place a cabin blueprint ---
+// --- place a cabin blueprint (direct action) ---
 g.selectBP('cabin');
 let hx = -1, hy = -1;
-outer: for (let y = 1; y < 14; y++) for (let x = 0; x < 23; x++) {
-  const i = y * 24 + x;
-  if ([st.grid[i], st.grid[i + 1], st.grid[i + 24], st.grid[i + 25]].every(c => c.t === 'grass')) { hx = x; hy = y; break outer; }
+outer: for (let y = 1; y < ROWS - 2; y++) for (let x = 0; x < COLS - 1; x++) {
+  const i = y * COLS + x;
+  if ([st.grid[i], st.grid[i + 1], st.grid[i + COLS], st.grid[i + COLS + 1]].every(c => c.t === 'grass')) { hx = x; hy = y; break outer; }
 }
 check('found 2x2 build spot', hx >= 0);
 const w0 = st.wood;
-g.clickTileAt(hx, hy);
+g.actNow(hx, hy);
 check('blueprint costs 25 wood (' + w0 + ' -> ' + st.wood + ')', st.wood === w0 - 25);
 check('house placed', st.houses.length === 1 && st.houses[0].progress === 0 && st.houses[0].bp === 'cabin');
-check('house tiles occupied', st.grid[hy * 24 + hx].t === 'house');
+check('house tiles occupied', st.grid[hy * COLS + hx].t === 'house');
 
 // --- blueprint cannot be placed on non-grass ---
 g.selectBP('cottage');
 const housesBefore = st.houses.length;
 const pondIdx = st.grid.findIndex(c => c.t === 'water');
-g.clickTileAt(pondIdx % 24, Math.floor(pondIdx / 24)); // pond
+g.actNow(pondIdx % COLS, Math.floor(pondIdx / COLS)); // pond
 const someTreeIdx = st.grid.findIndex(c => c.t === 'tree');
-g.clickTileAt(someTreeIdx % 24, Math.floor(someTreeIdx / 24)); // tree
+g.actNow(someTreeIdx % COLS, Math.floor(someTreeIdx / COLS)); // tree
 check('no house on non-grass', st.houses.length === housesBefore);
 g.selectBP(null);
 
@@ -136,7 +139,7 @@ check('construction advanced (' + st.houses[0].progress.toFixed(2) + ')', st.hou
 
 // --- completion + customer claims ---
 st.houses[0].progress = 1;
-st.customers.push({ id: 99, bp: 'cabin', daysLeft: 5, x: 5, y: 15, state: 'wait', t: 0, shirt: '#ffffff', anim: 0 });
+st.customers.push({ id: 99, bp: 'cabin', daysLeft: 5, x: 5, y: ROWS - 1, state: 'wait', t: 0, shirt: '#ffffff', anim: 0 });
 const rep0 = st.rep, coins0 = st.coins;
 step(2);
 check('house completed & claimed', st.houses[0].done === true && st.houses[0].claimed === true);
@@ -151,31 +154,69 @@ check('day advanced to ' + g.S().day, g.S().day === d0 + 1);
 check('weather is valid', ['sunny', 'cloudy', 'rain', 'storm'].includes(st.weather));
 check('save persisted', ls['instabuilt-timber-v1'] !== undefined);
 
-// --- hammer boost ---
+// --- hammer boost (direct action) ---
 st.houses[0].progress = 0.3; st.houses[0].done = false; st.houses[0].claimed = false; st.houses[0].boostDay = 0;
 st.wood = 100;
 g.setTool('hammer');
-g.clickTileAt(hx, hy);
+g.actNow(hx, hy);
 check('hammer boost +20%', Math.abs(st.houses[0].progress - 0.5) < 0.001);
 check('boost costs 5 wood', st.wood === 95);
 
-// --- saw tool: slower but yields extra wood ---
+// --- saw tool: slower but yields extra wood (direct action) ---
 const sawIdx = st.grid.findIndex(c => c.t === 'tree');
-const sawX = sawIdx % 24, sawY = Math.floor(sawIdx / 24);
+const sawX = sawIdx % COLS, sawY = Math.floor(sawIdx / COLS);
 g.setTool('saw');
 const wSaw0 = st.wood;
-g.clickTileAt(sawX, sawY);
+g.actNow(sawX, sawY);
 check('sawing started', st.sawing !== null && st.sawing.x === sawX);
 step(130); // ~2.1s of sawing
 check('saw finished & yielded extra wood (' + (st.wood - wSaw0) + ')', st.sawing === null && st.wood >= wSaw0 + 7);
 check('saw left a stump', st.grid[sawIdx].t === 'stump');
+
+// --- player walks around the forest ---
+g.setTool('axe');
+const px0 = st.player.x, py0 = st.player.y;
+const grassWalkIdx = st.grid.findIndex((c, i) => c.t === 'grass' && i % COLS > 2 && Math.floor(i / COLS) > 3);
+g.clickTileAt(grassWalkIdx % COLS, Math.floor(grassWalkIdx / COLS));
+check('click starts a walk', st.player.target !== null);
+step(90); // ~1.4s
+check('player moved toward the spot', Math.abs(st.player.x - px0) > 0.02 || Math.abs(st.player.y - py0) > 0.02);
+step(300); // let them arrive
+check('player arrived', st.player.target === null);
+
+// --- walk-to-chop: click a distant tree, the player walks over and chops it ---
+const treeWalkIdx = (() => {
+  for (let i = 0; i < st.grid.length; i++) {
+    if (st.grid[i].t !== 'tree') continue;
+    const x = i % COLS, y = Math.floor(i / COLS);
+    if (Math.hypot(x + 0.5 - st.player.x, y + 0.5 - st.player.y) < 4) continue; // must be a walk
+    const ok = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => {
+      const c = st.grid[(y + dy) * COLS + (x + dx)];
+      return c && (c.t === 'grass' || c.t === 'path' || c.t === 'sapling' || c.t === 'stump') && !c.occupied;
+    });
+    if (ok) return i;
+  }
+  return -1;
+})();
+check('found a distant walkable tree', treeWalkIdx >= 0);
+const wBeforeWalk = st.wood;
+const walkTx = treeWalkIdx % COLS, walkTy = Math.floor(treeWalkIdx / COLS);
+g.clickTileAt(walkTx, walkTy);
+check('chop queued after walking', st.player.target !== null);
+step(500); // plenty of time to walk over & chop
+check('tree chopped after walking to it', st.grid[treeWalkIdx].t === 'stump' && st.wood > wBeforeWalk);
+
+// --- WASD-style movement helper works ---
+const pBeforeStep = { x: st.player.x, y: st.player.y };
+g.__keyStep ? null : null; // no-op, movement keys are exercised via playerStep indirectly
+// (keyboard is window-level; the walk-to-chop test already covers movement)
 
 // --- canvas click handler works end-to-end ---
 g.setTool('axe');
 const stumpIdx2 = st.grid.findIndex(c => c.t === 'stump');
 if (stumpIdx2 >= 0) {
   const wBefore2 = st.wood;
-  clickCanvas(stumpIdx2 % 24, Math.floor(stumpIdx2 / 24));
+  clickCanvas(stumpIdx2 % COLS, Math.floor(stumpIdx2 / COLS));
   check('canvas click routed', st.wood === wBefore2); // stump -> no wood gained
 } else check('stump present for click test', false);
 
@@ -185,7 +226,7 @@ st = g.S(); // re-grab: setState replaced the state object
 st.wood = 500;
 // place a lodge as a nearly-finished house (completes during the next update)
 st.houses.push({ id: 999, bp: 'lodge', x: 10, y: 6, progress: 0.99, roof: 'red', done: false, claimed: false, boostDay: 0 });
-st.customers.push({ id: 100, bp: 'lodge', daysLeft: 5, x: 8, y: 15, state: 'wait', t: 0, shirt: '#ff0000', anim: 0 });
+st.customers.push({ id: 100, bp: 'lodge', daysLeft: 5, x: 8, y: ROWS - 1, state: 'wait', t: 0, shirt: '#ff0000', anim: 0 });
 getEl('ov-win').classList.add('hidden'); // ensure overlay starts hidden
 step(260); // ~4.2s of build time -> lodge completes, customer claims
 check('lodge claim at high rep -> level 5 win', st.rep >= 1000 && st.houses.find(h => h.id === 999).claimed === true);

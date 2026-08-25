@@ -15,29 +15,20 @@
   *{box-sizing:border-box;margin:0;padding:0;}
   html,body{height:100%;}
   body{
-    background:#1d1710 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="%23261d12"/><rect width="4" height="4" fill="%23221910"/></svg>');
+    background:#2e5d26;
     color:var(--cream);
     font-family:'Segoe UI',system-ui,sans-serif;
     display:flex;flex-direction:column;align-items:center;
     user-select:none;-webkit-user-select:none;
-    overflow-x:hidden;
+    overflow:hidden;
   }
+  header.site, .footer-note{display:none;}
   .pixel{font-family:'Press Start 2P','Courier New',monospace;}
-  header.site{
-    width:100%;max-width:1000px;padding:14px 16px 8px;display:flex;align-items:center;gap:10px;
-  }
-  header.site .logo{font-size:13px;letter-spacing:1px;color:var(--gold);text-shadow:2px 2px 0 #000;}
-  header.site .logo span{color:var(--cream);}
-  header.site .back{margin-left:auto;font-size:11px;color:var(--cream);background:var(--panel);border:2px solid var(--line);padding:6px 10px;text-decoration:none;font-family:'Press Start 2P',monospace;}
-  header.site .back:hover{background:var(--panel-l);}
-  #gameWrap{
-    width:100%;max-width:1000px;padding:8px;
-    display:flex;flex-direction:column;align-items:center;gap:8px;
-  }
   #topHUD{
-    width:100%;display:flex;flex-wrap:wrap;gap:6px;align-items:center;
-    background:var(--panel);border:3px solid var(--line);border-radius:4px;
-    padding:8px 10px;font-size:12px;
+    position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:10;
+    width:min(97vw,1020px);display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+    background:rgba(24,30,17,0.88);border:3px solid rgba(0,0,0,0.6);border-radius:4px;
+    padding:8px 10px;font-size:12px;box-shadow:0 4px 14px #0008;
   }
   .hud-item{display:flex;align-items:center;gap:5px;background:#00000044;border:2px solid #00000033;padding:4px 8px;border-radius:3px;}
   .hud-item b{color:var(--gold);}
@@ -50,14 +41,24 @@
   #phaseLbl{font-size:11px;}
   #btnMute,#btnPause,#btnHelp{background:var(--panel-l);border:2px solid var(--line);color:var(--cream);font-size:14px;width:34px;height:30px;cursor:pointer;border-radius:3px;}
   #btnMute:hover,#btnPause:hover,#btnHelp:hover{filter:brightness(1.2);}
-  #canvasShell{position:relative;width:100%;max-width:768px;border:4px solid var(--line);border-radius:4px;box-shadow:0 8px 24px #0009;}
-  canvas#gameCanvas{display:block;width:100%;height:auto;image-rendering:pixelated;image-rendering:crisp-edges;cursor:crosshair;background:#2b2118;}
-  #lowerRow{width:100%;display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;}
-  #leftPanel,#rightPanel{
-    background:var(--panel);border:3px solid var(--line);border-radius:4px;padding:8px;
+  canvas#gameCanvas{
+    position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:1;
+    image-rendering:pixelated;image-rendering:crisp-edges;
+    cursor:crosshair;background:#2e5d26;
+    box-shadow:0 0 0 3px #1f451c, 0 10px 30px #000a;
   }
-  #leftPanel{flex:0 0 148px;display:flex;flex-direction:column;gap:6px;}
-  #rightPanel{flex:1;min-width:250px;display:flex;flex-direction:column;gap:8px;}
+  #leftPanel{
+    position:fixed;left:10px;top:50%;transform:translateY(-50%);z-index:10;
+    width:152px;display:flex;flex-direction:column;gap:6px;
+    background:rgba(24,30,17,0.88);border:3px solid rgba(0,0,0,0.6);border-radius:4px;padding:8px;
+    box-shadow:0 4px 14px #0008;max-height:calc(100vh - 150px);overflow-y:auto;
+  }
+  #rightPanel{
+    position:fixed;right:10px;top:50%;transform:translateY(-50%);z-index:10;
+    width:min(27vw,280px);display:flex;flex-direction:column;gap:8px;
+    background:rgba(24,30,17,0.88);border:3px solid rgba(0,0,0,0.6);border-radius:4px;padding:8px;
+    box-shadow:0 4px 14px #0008;max-height:calc(100vh - 150px);overflow-y:auto;
+  }
   .panel-title{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--gold);letter-spacing:1px;}
   .tool-btn{
     display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;cursor:pointer;
@@ -98,8 +99,10 @@
   .msg.bad{border-color:var(--red);}
   .msg.gold{border-color:var(--gold);}
   #hintBar{
-    width:100%;max-width:1000px;padding:6px 12px;text-align:center;font-size:11px;
-    color:#000;background:var(--cream);border:2px solid var(--wood-d);border-radius:3px;margin-bottom:14px;
+    position:fixed;bottom:10px;left:50%;transform:translateX(-50%);z-index:10;
+    width:min(94vw,940px);padding:8px 12px;text-align:center;font-size:11px;
+    color:#1d1710;background:rgba(245,230,200,0.92);border:2px solid #1f451c;border-radius:3px;
+    box-shadow:0 4px 14px #0008;
   }
   /* overlays */
   .overlay{
@@ -120,7 +123,7 @@
   }
   #demoBar.hidden{display:none;}
   .modal{
-    background:var(--panel);border:4px solid var(--gold);border-radius:6px;max-width:560px;width:100%;
+    background:rgba(26,32,18,0.95);border:4px solid var(--gold);border-radius:6px;max-width:560px;width:100%;
     padding:22px;text-align:center;box-shadow:0 10px 40px #000;
   }
   .modal h1{font-family:'Press Start 2P',monospace;font-size:18px;color:var(--gold);line-height:1.5;margin-bottom:10px;}
@@ -139,11 +142,10 @@
   #tutModal .tut-step{margin:8px 0;}
   .kbd{background:#000;border:1px solid #666;border-radius:3px;padding:1px 5px;font-family:monospace;font-size:11px;}
   .footer-note{font-size:10px;opacity:.55;padding:4px 0 12px;text-align:center;}
-  @media (max-width:760px){
-    #lowerRow{flex-direction:column;}
-    #leftPanel{flex:1;width:100%;flex-direction:row;flex-wrap:wrap;}
-    .tool-btn{width:auto;flex:1;min-width:110px;}
-    #rightPanel{min-width:0;width:100%;}
+  @media (max-width:900px){
+    #leftPanel{left:50%;top:auto;bottom:54px;transform:translateX(-50%);width:min(96vw,560px);flex-direction:row;flex-wrap:wrap;max-height:34vh;}
+    #rightPanel{right:8px;top:64px;transform:none;width:min(62vw,240px);max-height:30vh;}
+    .tool-btn{width:auto;flex:1;min-width:100px;}
     .modal h1{font-size:14px;}
   }
 </style>
@@ -154,8 +156,7 @@
   <a class="back" href="../index.html">← Back to site</a>
 </header>
 
-<div id="gameWrap">
-  <div id="topHUD">
+<div id="topHUD">
     <div class="hud-item"><span class="ico">📅</span><span id="hud-day" class="pixel">Day 1</span></div>
     <div class="hud-item"><span class="ico" id="hud-weather-ico">☀️</span><span id="hud-weather" class="pixel" style="font-size:10px;">Sunny</span></div>
     <div class="hud-item"><span id="hud-forecast" style="font-size:10px;">Next: —</span></div>
@@ -172,9 +173,8 @@
     </div>
   </div>
 
-  <div id="canvasShell"><canvas id="gameCanvas" width="768" height="512"></canvas></div>
+  <canvas id="gameCanvas" width="1024" height="576"></canvas>
 
-  <div id="lowerRow">
     <div id="leftPanel">
       <div class="panel-title">TOOLS</div>
       <button class="tool-btn active" id="tool-axe" data-tool="axe">
@@ -199,9 +199,7 @@
       <div class="panel-title">VILLAGE LOG</div>
       <div id="msgLog"></div>
     </div>
-  </div>
-</div>
-<div id="hintBar">🪓 <b>Chop trees</b> for wood · 🌱 plant saplings to keep the forest healthy · pick a house from <b>BUILD</b> and click the grass to place it · customers move in when it's done!</div>
+<div id="hintBar">🧭 Click a spot or use <b>WASD / arrows</b> to walk · 🪓 chop trees (big oaks = most wood) · 🪚 saw = slower, +3 wood · 🌱 plant · pick a house in <b>BUILD</b> and click grass</div>
 
 <!-- Menu overlay -->
 <div class="overlay" id="ov-menu">
@@ -217,7 +215,7 @@
       <button class="btn ghost small" id="btn-watch-demo">🎬 Watch Intro</button>
       <button class="btn ghost small" id="btn-howto">❓ How to Play</button>
     </div>
-    <p style="font-size:11px;opacity:.65;margin-top:12px">🎮 Click / tap the map · <span class="kbd">1</span><span class="kbd">2</span><span class="kbd">3</span> tools · <span class="kbd">Esc</span> deselect</p>
+    <p style="font-size:11px;opacity:.65;margin-top:12px">🎮 Click to walk · <span class="kbd">WASD</span>/<span class="kbd">↑←↓→</span> move · <span class="kbd">1</span>🪓 <span class="kbd">2</span>🪚 <span class="kbd">3</span>🌱 <span class="kbd">4</span>🔨 · <span class="kbd">Esc</span> deselect</p>
   </div>
 </div>
 
@@ -229,6 +227,9 @@
       <button class="btn" id="btn-resume">Resume</button>
       <button class="btn ghost" id="btn-restart">New Game</button>
       <button class="btn ghost" id="btn-menu">Main Menu</button>
+    </div>
+    <div class="row">
+      <a class="btn ghost small" href="../index.html">← Back to site</a>
     </div>
   </div>
 </div>
@@ -250,8 +251,10 @@
 <div class="overlay hidden" id="ov-help">
   <div class="modal">
     <h2>HOW TO PLAY</h2>
-    <p>🪓 <b>Axe</b> — click a tree to chop it for wood. Every tree felled leaves a stump that regrows.</p>
-    <p>🌱 <b>Plant</b> — click grass to plant a free sapling. Saplings grow into mature trees over ~8 days (rain speeds it up).</p>
+    <p>🧭 <b>Walk around</b> — click a spot on the forest, or use <b>WASD / arrow keys</b>. You start at the campfire in your clearing, surrounded by trees.</p>
+    <p>🪓 <b>Axe</b> — click a tree: you walk over and chop it. Big oaks give the most wood (8–10).</p>
+    <p>🪚 <b>Saw</b> — click a tree to saw it down over ~2s (watch the progress bar) for <b>+3 extra wood</b>.</p>
+    <p>🌱 <b>Plant</b> — click grass to plant a free sapling. Saplings grow into trees in ~8 days (rain speeds it up).</p>
     <p>🔨 <b>Hammer</b> — click a house under construction to boost it +20% for 5 wood (once per house per day).</p>
     <p>🏠 <b>Build</b> — pick a blueprint, choose a roof color, click grass to place. Builders work automatically; weather &amp; night affect speed.</p>
     <p>🧑 <b>Customers</b> — they want specific houses. Complete them before they leave to earn coins &amp; reputation. Reach <b>1000 rep</b> to win!</p>
@@ -273,7 +276,7 @@
    ============================================================ */
 
 /* ---------- config ---------- */
-const TILE = 32, COLS = 24, ROWS = 16;
+const TILE = 32, COLS = 32, ROWS = 18;
 const W = COLS * TILE, H = ROWS * TILE;
 const PHASE_SECONDS = 12;   // 4 phases -> 48s per day
 const SAVE_KEY = 'instabuilt-timber-v1';
@@ -369,6 +372,8 @@ function newGame(){
   };
   genMap();
   S.forestStart = countForest();
+  S.player = {x:S.spawn.x+0.5, y:S.spawn.y+2, target:null, anim:0};
+  S.pending = null;
   selBP = null; tool='axe';
   particles=[]; floaties=[]; winShown=false; playerLevel=1;
   pushMsg('Welcome to your forest plot! 🪓 Chop trees to get started.', 'gold');
@@ -459,6 +464,10 @@ function loadSave(){
       daysSinceCust:d.daysSinceCust||0, unlocked:d.unlocked||[1], stormMsgShown:false, boostUsed:0};
     playerLevel = levelFromRep();
     winShown = playerLevel>=5;
+    S.spawn = {x:Math.floor(COLS/2), y:Math.floor(ROWS/2)};
+    S.player = d.player || {x:S.spawn.x+0.5, y:S.spawn.y+2, target:null, anim:0};
+    S.pending = null;
+    S.sawing = null;
     return true;
   }catch(e){ return false; }
 }
@@ -592,9 +601,52 @@ function checkEnv(){
   else if(e<30 && S._envOk !== false){ S._envOk=false; if(S.forestStart) pushMsg('⚠️ Forest is thinning! Customers are leaving. Plant more trees!', 'bad'); }
 }
 
-/* ---------- clicking the map ---------- */
-function clickTileAt(tx,ty){
-  if(!S || paused || winShown || demo) return;
+/* ---------- player: walk around the forest ---------- */
+function walkableForPlayer(x,y){
+  const c = tile(x,y);
+  return !!c && (c.t==='grass'||c.t==='path'||c.t==='sapling'||c.t==='stump') && !c.occupied;
+}
+function nearestStand(tx,ty){
+  if(walkableForPlayer(tx,ty)) return {x:tx+0.5, y:ty+0.5};
+  let best=null, bd=1e9;
+  for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+    const nx=tx+dx, ny=ty+dy;
+    if(walkableForPlayer(nx,ny)){
+      const d=Math.hypot(nx+0.5-S.player.x, ny+0.5-S.player.y);
+      if(d<bd){ bd=d; best={x:nx+0.5, y:ny+0.5}; }
+    }
+  }
+  return best;
+}
+function queueAction(act){
+  let stand;
+  if(act.type==='build'){
+    stand = nearestStand(act.x-1, act.y-1) || nearestStand(act.x, act.y);
+  } else {
+    stand = nearestStand(act.x, act.y);
+  }
+  if(!stand || Math.hypot(stand.x-S.player.x, stand.y-S.player.y) < 0.4){
+    performAction(act);
+    return;
+  }
+  S.pending = {act, stand};
+  S.player.target = stand;
+}
+function performAction(act){
+  if(act.type==='chop') chopTree(act.x, act.y);
+  else if(act.type==='saw') startSawing(act.x, act.y);
+  else if(act.type==='plant') plantSapling(act.x, act.y);
+  else if(act.type==='build'){
+    const bp = BLUEPRINTS.find(b=>b.id===act.bpId);
+    if(bp) tryPlaceBlueprint(bp, act.x, act.y);
+  }
+  else if(act.type==='boost'){
+    const c = tile(act.x, act.y);
+    if(c && c.houseId){ const h=S.houses.find(hh=>hh.id===c.houseId); if(h) boostHouse(h); }
+  }
+}
+function actNow(tx,ty){
+  if(!S) return;
   const cell = tile(tx,ty);
   if(!cell) return;
   if(selBP){
@@ -602,15 +654,72 @@ function clickTileAt(tx,ty){
     tryPlaceBlueprint(bp, tx, ty);
     return;
   }
-  if(S.sawing) return; // busy sawing
-  if(tool==='axe'){ if(isMatureTree(cell)) chopTree(tx,ty); else if(cell.t==='stump'||cell.t==='sapling') pushMsg('That tree isn\'t mature yet.', null, true); }
-  else if(tool==='saw'){ if(isMatureTree(cell)) startSawing(tx,ty); else pushMsg('Click a mature tree to saw it.', null, true); }
-  else if(tool==='plant'){ plantSapling(tx,ty); }
+  if(S.sawing) return;
+  if(tool==='axe'){ if(isMatureTree(cell)) chopTree(tx,ty); }
+  else if(tool==='saw'){ if(isMatureTree(cell)) startSawing(tx,ty); }
+  else if(tool==='plant'){ if(isGrass(tx,ty)) plantSapling(tx,ty); }
+  else if(tool==='hammer'){ if(cell.t==='house' && cell.houseId){ const h=S.houses.find(hh=>hh.id===cell.houseId); if(h) boostHouse(h); } }
+}
+function movePlayerTo(tx,ty){
+  if(!S.player) return;
+  S.pending = null;
+  S.player.target = {x:tx+0.5, y:ty+0.5};
+}
+function playerStep(dx,dy){
+  const p = S.player;
+  if(!p) return;
+  const nx = p.x+dx, ny = p.y+dy;
+  const tx = Math.floor(nx), ty = Math.floor(ny);
+  if(walkableForPlayer(tx,ty)){ S.pending=null; p.target = {x:nx, y:ny}; }
+}
+function updatePlayer(dt){
+  const p = S.player;
+  if(!p) return;
+  p.anim += dt;
+  if(p.target){
+    const dx = p.target.x - p.x, dy = p.target.y - p.y;
+    const d = Math.hypot(dx,dy);
+    if(d > 0.05){
+      const step = Math.min(d, dt*3.2);
+      p.x += dx/d*step; p.y += dy/d*step;
+    } else {
+      p.x = p.target.x; p.y = p.target.y;
+      p.target = null;
+      if(S.pending){ const act = S.pending.act; S.pending = null; performAction(act); }
+    }
+  }
+}
+function drawPlayer(){
+  if(demo || !S || !S.player) return;
+  const p = S.player;
+  const px = Math.round(p.x*TILE), py = Math.round(p.y*TILE);
+  const moving = !!p.target;
+  const frame = moving ? ((Math.floor(p.anim*6)%2===0) ? SPR_PERSON.walk : SPR_PERSON.idle) : SPR_PERSON.idle;
+  drawSprite(frame, px-4, py-8, {s:C.skin, h:'#2b2118', t:'#e5484d', p:'#3a4a5a'}, 1);
+  ctx.fillStyle = '#e5484d';   // red cap
+  ctx.fillRect(px-3, py-10, 6, 2);
+}
+
+/* ---------- clicking the map ---------- */
+function clickTileAt(tx,ty){
+  if(!S || paused || winShown || demo) return;
+  const cell = tile(tx,ty);
+  if(!cell) return;
+  if(selBP){
+    queueAction({type:'build', x:tx, y:ty, bpId:selBP});
+    return;
+  }
+  if(S.sawing) return;
+  if(tool==='axe'){
+    if(isMatureTree(cell)) queueAction({type:'chop', x:tx, y:ty});
+    else if(cell.t==='stump'||cell.t==='sapling') pushMsg('That tree isn\'t mature yet.', null, true);
+    else movePlayerTo(tx,ty);
+  }
+  else if(tool==='saw'){ if(isMatureTree(cell)) queueAction({type:'saw', x:tx, y:ty}); else pushMsg('Click a mature tree to saw it.', null, true); }
+  else if(tool==='plant'){ if(isGrass(tx,ty)) queueAction({type:'plant', x:tx, y:ty}); }
   else if(tool==='hammer'){
-    if(cell.t==='house' && cell.houseId){
-      const h = S.houses.find(hh=>hh.id===cell.houseId);
-      if(h) boostHouse(h);
-    } else pushMsg('Click a house under construction to boost it.', null, true);
+    if(cell.t==='house' && cell.houseId) queueAction({type:'boost', x:tx, y:ty});
+    else pushMsg('Click a house under construction to boost it.', null, true);
   }
 }
 
@@ -767,6 +876,7 @@ function update(dt){
     return;
   }
   tickSawing(dt);
+  updatePlayer(dt);
   // day/phase timer
   S.phaseT += dt;
   if(S.phaseT >= PHASE_SECONDS){
@@ -1070,6 +1180,7 @@ function drawMap(){
     drawHouse(h, alpha);
   }
   for(const c of S.customers) drawPerson(c);
+  drawPlayer();
 }
 function drawWeather(){
   if(S.weather==='rain' || S.weather==='storm'){
@@ -1235,7 +1346,7 @@ function updateHint(){
     const bp = BLUEPRINTS.find(b=>b.id===selBP);
     $('hintBar').innerHTML = '🏠 Building: <b>'+bp.name+'</b> ('+bp.wood+' 🪵) — click grass to place, <b>Esc</b> to cancel.';
   } else if(tool==='axe'){
-    $('hintBar').innerHTML = '🪓 <b>Chop trees</b> for wood (big oaks give the most) · 🪚 the saw is slower but yields +3 · 🌱 plant saplings to keep the forest healthy · pick a house from <b>BUILD</b> and click the grass to place it!';
+    $('hintBar').innerHTML = '🧭 Click a spot or <b>WASD/arrows</b> to walk · 🪓 click a <b>tree</b> to walk over &amp; chop (big oaks = most wood) · 🪚 saw slower, +3 wood · 🌱 plant · pick a house in <b>BUILD</b> and click grass!';
   } else if(tool==='saw'){
     $('hintBar').innerHTML = '🪚 Click a tree to <b>saw it down</b> — takes a moment, but each tree gives <b>+3 more wood</b> than the axe.';
   } else if(tool==='plant'){
@@ -1472,6 +1583,10 @@ window.addEventListener('keydown', (e)=>{
   if(e.key==='2') setTool('saw');
   if(e.key==='3') setTool('plant');
   if(e.key==='4') setTool('hammer');
+  const dirs = {w:[0,-1],s:[0,1],a:[-1,0],d:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};
+  if(dirs[e.key]){
+    if(S && !paused && !demo && !winShown){ e.preventDefault(); playerStep(dirs[e.key][0], dirs[e.key][1]); }
+  }
   if(e.key===' '){ e.preventDefault(); if(S && !winShown){ paused=!paused; showScreen(paused?'pause':'none'); } }
 });
 window.addEventListener('beforeunload', ()=>{ if(S) saveGame(); });
@@ -1492,8 +1607,15 @@ function loop(t){
 }
 
 /* ---------- boot ---------- */
+function fitCanvas(){
+  const scale = Math.min(window.innerWidth/W, window.innerHeight/H);
+  canvas.style.width = Math.floor(W*scale)+'px';
+  canvas.style.height = Math.floor(H*scale)+'px';
+}
+window.addEventListener('resize', fitCanvas);
 newGame();        // generate & render the colorful forest behind the menu
 paused = true;    // menu is open — game time frozen until START
+fitCanvas();
 $('btn-continue').style.display = hasSave() ? '' : 'none';
 renderMsgLog();
 refreshBuildMenu();
@@ -1512,6 +1634,8 @@ window.__game = {
   demo: ()=>demo,
   runDemo,
   setPaused: (v)=>{ paused = !!v; },
+  actNow,
+  player: ()=>S ? S.player : null,
 };
 </script>
 </body>
