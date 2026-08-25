@@ -9,8 +9,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   :root{
-    --wood:#a8743d; --wood-d:#6b4a2b; --cream:#f5e6c8; --ink:#2b2118;
-    --panel:#3a2c1e; --panel-l:#4d3a28; --line:#8a5f2f; --gold:#f2c94c; --red:#e5484d; --green:#4f9a3a;
+    --wood:#ad7757; --wood-d:#6b4a2b; --cream:#f5e6c8; --ink:#2b2118;
+    --panel:#3a2c1e; --panel-l:#4d3a28; --line:#9c6a4c; --gold:#f2c94c; --red:#e5484d; --green:#63ab3f;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
   html,body{height:100%;}
@@ -107,6 +107,20 @@
     z-index:50;padding:16px;opacity:1;transition:opacity .25s;
   }
   .overlay.hidden{display:none;}
+  #ov-menu{background:#000;}
+  .menu-bg{position:absolute;inset:0;background:url('../background/S0y4nL.png') center/cover no-repeat;image-rendering:pixelated;opacity:.9;}
+  .menu-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,#0009,#00000088 55%,#1d1710f5);}
+  .menu-modal{position:relative;max-width:600px;}
+  .menu-house{width:104px;height:104px;image-rendering:pixelated;border:3px solid #000;border-radius:4px;margin:0 auto 12px;display:block;box-shadow:0 4px 12px #000;}
+  .btn.small{font-size:9px;padding:8px 12px;}
+  #demoBar{
+    position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:40;
+    background:var(--panel);border:3px solid var(--gold);border-radius:4px;
+    padding:10px 16px;max-width:660px;width:calc(100% - 32px);text-align:center;
+    font-family:'Press Start 2P',monospace;font-size:10px;line-height:1.8;color:var(--cream);
+    box-shadow:0 6px 20px #000;
+  }
+  #demoBar.hidden{display:none;}
   .modal{
     background:var(--panel);border:4px solid var(--gold);border-radius:6px;max-width:560px;width:100%;
     padding:22px;text-align:center;box-shadow:0 10px 40px #000;
@@ -190,12 +204,18 @@
 
 <!-- Menu overlay -->
 <div class="overlay" id="ov-menu">
-  <div class="modal">
+  <div class="menu-bg"></div>
+  <div class="modal menu-modal">
+    <img class="menu-house" src="../background/ZTF_AE.gif" alt="A wooden house"/>
     <h1>🌲 INSTABUILT<br/>TIMBER VILLAGE</h1>
     <p>Turn a small forest plot into a thriving wooden village.<br/>Harvest <b>sustainably</b>, build beautiful houses, and keep your customers &amp; the environment happy.</p>
     <div class="row">
       <button class="btn" id="btn-start">▶ START</button>
       <button class="btn ghost" id="btn-continue" style="display:none">Continue</button>
+    </div>
+    <div class="row">
+      <button class="btn ghost small" id="btn-skip-demo">⏩ Skip Intro</button>
+      <button class="btn ghost small" id="btn-howto">❓ How to Play</button>
     </div>
     <p style="font-size:11px;opacity:.65;margin-top:12px">🎮 Click / tap the map · <span class="kbd">1</span><span class="kbd">2</span><span class="kbd">3</span> tools · <span class="kbd">Esc</span> deselect</p>
   </div>
@@ -241,17 +261,8 @@
   </div>
 </div>
 
-<!-- Tutorial overlay -->
-<div class="overlay hidden" id="ov-tut">
-  <div class="modal" id="tutModal">
-    <h2 id="tutTitle">Welcome, builder!</h2>
-    <div id="tutBody"></div>
-    <div class="row">
-      <button class="btn ghost" id="tutSkip" style="display:none">Skip</button>
-      <button class="btn" id="tutNext">Next ▶</button>
-    </div>
-  </div>
-</div>
+<!-- Demo caption bar -->
+<div id="demoBar" class="hidden"><span id="demoText"></span></div>
 
 <div class="footer-note">InstaBuilt · Timber Village — a tiny sustainable village builder. Progress autosaves.</div>
 
@@ -268,18 +279,19 @@ const PHASE_SECONDS = 12;   // 4 phases -> 48s per day
 const SAVE_KEY = 'instabuilt-timber-v1';
 
 const C = {
-  grassA:'#7cb35a', grassB:'#74a954', grassDark:'#5d8f43',
-  dirt:'#a97c4f', path:'#8a6a44', pathEdge:'#75582f',
-  trunk:'#6b4a2b', bark:'#573a20', canopyA:'#3f7d2f', canopyB:'#4f9a3a', canopyC:'#2f6623',
-  wood:'#a8743d', woodD:'#8a5f2f', woodL:'#c08a4f',
-  water:'#4a8fd4', waterD:'#3a77b8',
+  grassA:'#63ab3f', grassB:'#5a9a39', grassDark:'#3b7d4f',
+  dirt:'#ad7757', path:'#9c6a4c', pathEdge:'#7d5638',
+  trunk:'#8a5f3f', bark:'#6b4a2b', canopyA:'#3b7d4f', canopyB:'#75a743', canopyC:'#2f6623',
+  canopyRedA:'#a73230', canopyRedB:'#bc4133', canopyRedC:'#7d2a28',
+  wood:'#ad7757', woodD:'#8f5f3f', woodL:'#c9956b',
+  water:'#4fa3b8', waterD:'#3a8a9f',
   scaffold:'#c9a86a',
-  skin:'#e8b88a', hair:'#4a3020', pants:'#4a5a6a',
+  skin:'#ffc2a1', hair:'#4a3020', pants:'#4a5a6a',
   white:'#ffffff', black:'#1a1a1a', gold:'#f2c94c', red:'#e5484d',
 };
 
 const ROOFS = [
-  {id:'red',  name:'Red',   top:'#c95c3e', side:'#b5533a', dark:'#8f3d2a'},
+  {id:'red',  name:'Red',   top:'#cf5a44', side:'#bc4133', dark:'#8f2f26'},
   {id:'brown',name:'Brown', top:'#a8743d', side:'#8a5f2f', dark:'#6b4a2b'},
   {id:'green',name:'Green', top:'#5a8a3a', side:'#4a7630', dark:'#3a5c26'},
   {id:'gray', name:'Slate', top:'#8d8d96', side:'#76767f', dark:'#5c5c64'},
@@ -518,7 +530,7 @@ function checkEnv(){
 
 /* ---------- clicking the map ---------- */
 function clickTileAt(tx,ty){
-  if(!S || paused || winShown) return;
+  if(!S || paused || winShown || demo) return;
   const cell = tile(tx,ty);
   if(!cell) return;
   if(selBP){
@@ -657,8 +669,37 @@ function advanceDay(){
   saveGame();
 }
 
+function updateParticles(dt){
+  for(const p of particles){ p.life-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=40*dt; }
+  particles = particles.filter(p=>p.life>0);
+  for(const f of floaties){ f.life-=dt; f.y-=22*dt; }
+  floaties = floaties.filter(f=>f.life>0);
+  if(shake>0) shake-=dt;
+}
+function completeHouse(h){
+  h.done = true;
+  addFloat(h.x*TILE+(houseBP(h).w*TILE)/2, h.y*TILE-12, '✨ Built!', C.gold);
+  sfx('done');
+  pushMsg('✨ Your '+houseBP(h).name+' is finished!', 'good');
+  const cust = S.customers.find(c=>c.state==='wait' && c.bp===h.bp);
+  if(cust) claimHouse(h, cust);
+  refreshCustPanel();
+}
+function claimSweep(){
+  for(const h of S.houses){
+    if(h.done && !h.claimed){
+      const cust = S.customers.find(c=>c.state==='wait' && c.bp===h.bp);
+      if(cust){ claimHouse(h, cust); return; }
+    }
+  }
+}
 function update(dt){
   if(paused || !S) return;
+  if(demo){
+    updateDemo(dt);
+    updateParticles(dt);
+    return;
+  }
   // day/phase timer
   S.phaseT += dt;
   if(S.phaseT >= PHASE_SECONDS){
@@ -672,32 +713,13 @@ function update(dt){
   for(const h of S.houses){
     if(h.done || h.claimed) continue;
     h.progress = Math.min(1, h.progress + dt/(houseBP(h).days*PHASE_SECONDS*4) * wm * pm);
-    if(h.progress>=1 && !h.done){
-      h.done = true;
-      addFloat(h.x*TILE+(houseBP(h).w*TILE)/2, h.y*TILE-12, '✨ Built!', C.gold);
-      sfx('done');
-      pushMsg('✨ Your '+houseBP(h).name+' is finished!', 'good');
-      // matching waiting customer?
-      const cust = S.customers.find(c=>c.state==='wait' && c.bp===h.bp);
-      if(cust) claimHouse(h, cust);
-      refreshCustPanel();
-    }
+    if(h.progress>=1 && !h.done) completeHouse(h);
   }
   updateCustomers(dt);
   // claim any waiting customer whose requested house already stands empty
   // (covers save/load edge: house finished while a customer was already waiting)
-  for(const h of S.houses){
-    if(h.done && !h.claimed){
-      const cust = S.customers.find(c=>c.state==='wait' && c.bp===h.bp);
-      if(cust){ claimHouse(h, cust); break; }
-    }
-  }
-  // particles & floaties
-  for(const p of particles){ p.life-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=40*dt; }
-  particles = particles.filter(p=>p.life>0);
-  for(const f of floaties){ f.life-=dt; f.y-=22*dt; }
-  floaties = floaties.filter(f=>f.life>0);
-  if(shake>0) shake-=dt;
+  claimSweep();
+  updateParticles(dt);
   // autosave every 20s
   saveTimer += dt;
   if(saveTimer>20){ saveTimer=0; saveGame(); }
@@ -718,18 +740,24 @@ function drawSprite(rows, px, py, colors, scale){
 }
 function drawTree(x,y,seed){
   const px = x*TILE, py = y*TILE;
+  const red = rnd2(x*7+3, y*5) > 0.76; // some trees wear red leaves, like the artwork
   const r = 9 + Math.floor(rnd2(seed,seed+1)*3);
-  // canopy: dithered circle
-  ctx.fillStyle = C.canopyA;
+  const A = red ? C.canopyRedA : C.canopyA;
+  const B = red ? C.canopyRedB : C.canopyB;
+  const Cc = red ? C.canopyRedC : C.canopyC;
+  // canopy: dithered circle with dark outline
+  ctx.fillStyle = A;
   ctx.beginPath(); ctx.arc(px+16, py+12, r, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = C.canopyB;
+  ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = B;
   for(let i=0;i<14;i++){
     const a = rnd2(seed+i, seed*2+i)*Math.PI*2;
     const d = rnd2(seed+i+7, seed)* (r-3);
     const cx = px+16+Math.cos(a)*d, cy = py+12+Math.sin(a)*d*0.8;
     ctx.fillRect(Math.round(cx), Math.round(cy), 2, 2);
   }
-  ctx.fillStyle = C.canopyC;
+  ctx.fillStyle = Cc;
   for(let i=0;i<6;i++){
     const a = rnd2(seed*3+i, seed+i)*Math.PI*2;
     const cx = px+16+Math.cos(a)*(r-2), cy = py+13+Math.sin(a)*(r-2)*0.8;
@@ -740,6 +768,7 @@ function drawTree(x,y,seed){
   ctx.fillRect(px+14, py+18, 4, 12);
   ctx.fillStyle = C.trunk;
   ctx.fillRect(px+13, py+17, 2, 2);
+  ctx.fillRect(px+16, py+17, 2, 2);
 }
 function drawHouse(h, alpha){
   const bp = houseBP(h);
@@ -767,6 +796,9 @@ function drawHouse(h, alpha){
   }
   ctx.fillStyle = roof.dark;
   ctx.fillRect(px, bodyY-6-steps*3, bw, 2);
+  // crisp black outline (artwork style)
+  ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 2;
+  ctx.strokeRect(px+1, bodyY-7-steps*3+1, bw-2, (bodyY+bodyH)-(bodyY-7-steps*3)-2);
   // door
   const doorW = 10, doorH = 16;
   const doorX = px + bw/2 - doorW/2, doorY = bodyY+bodyH-doorH;
@@ -835,9 +867,13 @@ function drawMap(){
       } else {
         ctx.fillStyle = ((x+y)%2) ? C.grassA : C.grassB;
         ctx.fillRect(px,py,TILE,TILE);
-        if(rnd2(x,y) < 0.08 && (cell.t==='grass'||cell.t==='sapling')){
+        if(rnd2(x,y) < 0.09 && (cell.t==='grass'||cell.t==='sapling')){
           ctx.fillStyle = C.grassDark;
           ctx.fillRect(px+6+(rnd2(x,y*3)*16|0), py+10+(rnd2(y,x)*16|0), 2, 2);
+          if(rnd2(x*3,y*7) < 0.55){ // little flowers, like the artwork
+            ctx.fillStyle = rnd2(x*5,y*2) < 0.5 ? '#ffffff' : '#c8d45d';
+            ctx.fillRect(px+8+(rnd2(x,y*11)*12|0), py+8+(rnd2(y*3,x)*12|0), 2, 2);
+          }
         }
       }
     }
@@ -935,6 +971,7 @@ function render(){
   drawHover();
   drawWeather();
   drawFx();
+  drawDemoFx();
   ctx.restore();
 }
 
@@ -1026,38 +1063,13 @@ function showScreen(name){
   const el = $('ov-'+name);
   if(el) el.classList.remove('hidden');
 }
+function demoSeen(){ try{ return !!localStorage.getItem('instabuilt-demo-seen'); }catch(e){ return false; } }
 function startGame(){
   newGame();
   showScreen('none');
-  if(!localStorage.getItem('instabuilt-tut-seen')){
-    startTutorial();
-  }
+  if(!demoSeen()) runDemo();
+  else pushMsg('🎮 Build your village! Reach 1000 reputation to win. (❓ for help)', 'gold');
   updateHUD();
-}
-function startTutorial(){
-  const steps = [
-    {t:'Welcome, builder!', b:'<p>You own a <b>forest plot</b> — your land, your village. But first: <b>wood</b>.</p>'},
-    {t:'1 · Chop trees 🪓', b:'<p>Select the <b>Axe</b> tool (left panel) and click a <b>tree</b> on the map. Each mature tree gives 5–7 wood.</p><p>Chop wisely — a bare forest means no customers!</p>'},
-    {t:'2 · Plant saplings 🌱', b:'<p>Pick the <b>Plant</b> tool and click empty grass to plant a <b>free sapling</b>. It grows into a tree in ~8 days, faster when it rains.</p>'},
-    {t:'3 · Build a house 🏡', b:'<p>In the <b>BUILD</b> panel pick a blueprint (start with the <b>Tiny Cabin</b>), choose a roof color, then click grass to place it. Builders work day and night — weather matters!</p>'},
-    {t:'4 · Serve customers 🧑', b:'<p>Customers arrive wanting a specific house. Finish it before their timer runs out to earn <b>coins</b> and <b>reputation</b>. Reach 1000 rep to make the village thrive!</p>'},
-  ];
-  let i = 0;
-  const body = $('tutBody'), title = $('tutTitle'), next = $('tutNext'), skip = $('tutSkip');
-  function show(){
-    title.textContent = steps[i].t;
-    body.innerHTML = steps[i].b;
-    next.textContent = i<steps.length-1 ? 'Next ▶' : 'Let\'s build! 🪓';
-    skip.style.display = i===0 ? 'block' : 'none';
-  }
-  next.onclick = ()=>{
-    i++;
-    if(i>=steps.length){ localStorage.setItem('instabuilt-tut-seen','1'); showScreen('none'); }
-    else show();
-  };
-  skip.onclick = ()=>{ localStorage.setItem('instabuilt-tut-seen','1'); showScreen('none'); };
-  show();
-  showScreen('tut');
 }
 function showWin(){
   const winEl = document.getElementById('ov-win');
@@ -1070,6 +1082,127 @@ function showWin(){
     '<div class="s">⭐ <b>'+S.rep+'</b> reputation</div>'+
     '<div class="s">🌲 <b>'+Math.round(envPercent())+'%</b> forest</div>';
   showScreen('win');
+}
+
+/* ---------- intro demo: the foreman shows how to chop & build ---------- */
+let demo = null;
+
+function findDemoTree(){
+  for(let y=2;y<10;y++) for(let x=6;x<16;x++){
+    const c = tile(x,y);
+    if(c && c.t==='tree') return {x,y};
+  }
+  for(let i=0;i<S.grid.length;i++) if(S.grid[i].t==='tree') return {x:i%COLS, y:Math.floor(i/COLS)};
+  return {x:6,y:4};
+}
+function findDemoSpot(){
+  for(const y of [10,9,11,8,12]) for(let x=13;x<22;x++){
+    if(isBuildable(x,y)&&isBuildable(x+1,y)&&isBuildable(x,y+1)&&isBuildable(x+1,y+1)) return {x,y};
+  }
+  for(let y=2;y<14;y++) for(let x=0;x<23;x++){
+    if(isBuildable(x,y)&&isBuildable(x+1,y)&&isBuildable(x,y+1)&&isBuildable(x+1,y+1)) return {x,y};
+  }
+  return {x:14,y:9};
+}
+function runDemo(){
+  const tree = findDemoTree();
+  const spot = findDemoSpot();
+  demo = {
+    step:0, t:0, tree, spot, house:null, fastBuild:false,
+    foreman:{x:1.2, y:ROWS-1.4, target:null, anim:0},
+    highlight:null, phaseActed:false,
+    phases:[
+      {cap:'🌲 Welcome, builder! This is your forest plot. Watch the foreman demo…', wait:3.2, act:()=>{ demo.highlight=null; }},
+      {cap:'🪓 Mature trees give 5–7 wood. Watch how the Axe chops one!', wait:0, act:()=>{ demo.highlight={tx:tree.x,ty:tree.y,w:1,h:1}; demo.foreman.target={x:tree.x+0.5, y:tree.y+1.4}; }, until:()=> !demo.foreman.target},
+      {cap:'💥 Chopped! The stump regrows by itself — and you can plant even more trees.', wait:2.8, act:()=> demoChop()},
+      {cap:'🏠 Now design a house: pick a blueprint in BUILD, then click the grass to place it.', wait:0, act:()=>{ demo.highlight={tx:spot.x,ty:spot.y,w:2,h:2}; demo.foreman.target={x:spot.x+1, y:spot.y+2.6}; }, until:()=> !demo.foreman.target},
+      {cap:'🏗️ Blueprint placed! Builders work automatically — weather & night change the pace.', wait:1.2, act:()=>{ demoPlaceHouse(); demo.fastBuild=true; }, until:()=> demo.house && demo.house.done},
+      {cap:'🧑 A customer wants a cabin. Finished houses earn coins & reputation!', wait:1.0, act:()=> spawnDemoCustomer(), until:()=> demo.house && demo.house.claimed},
+      {cap:'🎮 Your turn! Chop wood, plant saplings, keep the forest healthy and reach 1000 reputation to win. Good luck, builder!', wait:4.5, act:()=>{ demo.highlight=null; }},
+    ],
+  };
+  $('demoBar').classList.remove('hidden');
+  $('demoText').textContent = demo.phases[0].cap;
+  pushMsg('🎬 Intro demo — watch how to chop and build!', 'gold');
+}
+function updateDemo(dt){
+  if(!demo) return;
+  demo.t += dt;
+  demo.foreman.anim = demo.t;
+  // move the foreman toward his target
+  if(demo.foreman.target){
+    const t = demo.foreman.target;
+    const dx = t.x - demo.foreman.x, dy = t.y - demo.foreman.y;
+    const d = Math.hypot(dx,dy);
+    if(d > 0.06){ demo.foreman.x += dx/d*dt*1.8; demo.foreman.y += dy/d*dt*1.8; }
+    else demo.foreman.target = null;
+  }
+  // fast-build the demo house
+  if(demo.fastBuild && demo.house && !demo.house.done){
+    demo.house.progress = Math.min(1, demo.house.progress + dt*0.30);
+    if(demo.house.progress>=1) completeHouse(demo.house);
+  }
+  // customers still walk & claim during the demo (a bit faster for pacing)
+  updateCustomers(dt*2.5);
+  claimSweep();
+  // phase machine
+  const ph = demo.phases[demo.step];
+  if(!demo.phaseActed && ph.act){ ph.act(); demo.phaseActed = true; }
+  const wait = ph.wait !== undefined ? ph.wait : 0;
+  const doneCond = ph.until ? ph.until() : true;
+  if(demo.t >= wait && doneCond){
+    demo.step++;
+    demo.t = 0;
+    demo.phaseActed = false;
+    if(demo.step >= demo.phases.length){ endDemo(); return; }
+    $('demoText').textContent = demo.phases[demo.step].cap;
+  }
+}
+function demoChop(){
+  chopTree(demo.tree.x, demo.tree.y);
+  shake = 0.15;
+  sfx('chop');
+}
+function demoPlaceHouse(){
+  const bp = BLUEPRINTS.find(b=>b.id==='cabin');
+  const ok = tryPlaceBlueprint(bp, demo.spot.x, demo.spot.y);
+  if(ok){
+    demo.house = S.houses[S.houses.length-1];
+    demo.highlight = {tx:demo.spot.x, ty:demo.spot.y, w:2, h:2};
+    demo.foreman.target = {x:demo.spot.x+2.8, y:demo.spot.y+1.8}; // step aside
+  }
+}
+function spawnDemoCustomer(){
+  const targetX = Math.max(1, Math.min(COLS-3, demo.spot.x+0.5));
+  S.customers.push({id:S.custId++, bp:'cabin', daysLeft:5, x:Math.max(0.4, targetX-5), y:ROWS-1, state:'enter', t:0,
+    shirt:SHIRTS[2], anim:0, targetX});
+  sfx('customer');
+  refreshCustPanel();
+}
+function endDemo(){
+  demo = null;
+  $('demoBar').classList.add('hidden');
+  try{ localStorage.setItem('instabuilt-demo-seen','1'); }catch(e){}
+  pushMsg('🎮 The forest is yours! Build your village — reach 1000 reputation to win.', 'gold');
+}
+function drawForeman(){
+  if(!demo) return;
+  const c = demo.foreman;
+  const px = Math.round(c.x*TILE), py = Math.round(c.y*TILE);
+  const frame = (Math.floor(c.anim*4)%2===0) ? SPR_PERSON.idle : SPR_PERSON.walk;
+  drawSprite(frame, px-4, py-8, {s:C.skin, h:C.hair, t:'#e8a33a', p:'#5a4a3a'}, 1);
+  ctx.fillStyle = '#f2c94c';           // hard hat
+  ctx.fillRect(px-3, py-10, 6, 2);
+  ctx.fillRect(px-2, py-12, 4, 2);
+}
+function drawDemoFx(){
+  drawForeman();
+  if(!demo || !demo.highlight) return;
+  const hl = demo.highlight;
+  const a = 0.45 + 0.35*Math.sin(performance.now()/180);
+  ctx.strokeStyle = 'rgba(255,255,255,'+a.toFixed(2)+')';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(hl.tx*TILE+2, hl.ty*TILE+2, hl.w*TILE-4, hl.h*TILE-4);
 }
 
 /* ---------- audio (tiny WebAudio blips, no assets) ---------- */
@@ -1137,6 +1270,8 @@ $('btn-again').addEventListener('click', ()=>{ try{localStorage.removeItem(SAVE_
 $('btn-keep').addEventListener('click', ()=>{ showScreen('none'); });
 $('btn-help').addEventListener('click', ()=>{ if(!S) return; showScreen('help'); });
 $('btn-close-help').addEventListener('click', ()=>{ showScreen('none'); });
+$('btn-howto').addEventListener('click', ()=>{ showScreen('help'); });
+$('btn-skip-demo').addEventListener('click', ()=>{ try{localStorage.setItem('instabuilt-demo-seen','1');}catch(e){} startGame(); });
 $('btn-mute').addEventListener('click', ()=>{ muted=!muted; $('btn-mute').textContent = muted?'🔇':'🔊'; });
 window.addEventListener('keydown', (e)=>{
   if(e.key==='Escape'){ selBP=null; refreshBuildMenu(); updateHint(); }
@@ -1178,6 +1313,7 @@ window.__game = {
   setState: (d)=>{ S = d; },
   toast: (m,k)=>pushMsg(m,k),
   currentTool: ()=>tool,
+  demo: ()=>demo,
 };
 </script>
 </body>

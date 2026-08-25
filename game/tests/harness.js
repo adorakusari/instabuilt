@@ -173,5 +173,25 @@ step(260); // ~4.2s of build time -> lodge completes, customer claims
 check('lodge claim at high rep -> level 5 win', st.rep >= 1000 && st.houses.find(h => h.id === 999).claimed === true);
 check('win overlay shown', !getEl('ov-win').classList.contains('hidden'));
 
+// --- intro demo: foreman chops a tree, builds a cabin, customer moves in ---
+try { localStorage.removeItem('instabuilt-demo-seen'); } catch (e) {}
+g.startGame();
+let d = g.demo();
+check('demo starts after first startGame', !!d && d.step === 0);
+const woodAtDemoStart = g.S().wood;
+const treeCountAtStart = g.S().grid.filter(c => c.t === 'tree').length;
+step(3000); // ~48s of demo time — enough to finish the whole sequence
+d = g.demo();
+check('demo finished', d === null);
+const treeCountAfter = g.S().grid.filter(c => c.t === 'tree').length;
+check('demo chopped exactly one tree', treeCountAtStart - treeCountAfter === 1);
+check('demo built & claimed a cabin', g.S().houses.some(h => h.bp === 'cabin' && h.done && h.claimed));
+check('demo earned reputation', g.S().rep > 0);
+check('demo flag saved', ls['instabuilt-demo-seen'] === '1');
+check('day did not advance during demo', g.S().day === 1);
+// second start: demo is skipped
+g.startGame();
+check('demo skipped on later starts', g.demo() === null);
+
 console.log('\nRESULT: ' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);
