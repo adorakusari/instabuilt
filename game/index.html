@@ -43,6 +43,7 @@
   #btnMute:hover,#btnPause:hover,#btnHelp:hover{filter:brightness(1.2);}
   canvas#gameCanvas{
     position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:1;
+    width:min(96vw,1100px);height:auto;aspect-ratio:16/9;
     image-rendering:pixelated;image-rendering:crisp-edges;
     cursor:crosshair;background:#2e5d26;
     box-shadow:0 0 0 3px #1f451c, 0 10px 30px #000a;
@@ -268,9 +269,15 @@
 <div id="demoBar" class="hidden"><span id="demoText"></span></div>
 
 <div class="footer-note">InstaBuilt · Timber Village — a tiny sustainable village builder. Progress autosaves.</div>
+<div id="errStrip" style="display:none;position:fixed;top:0;left:0;right:0;z-index:999;background:#c33;color:#fff;font:12px monospace;padding:6px 10px;"></div>
 
 <script>
 'use strict';
+/* show any runtime error visibly instead of failing silently */
+window.addEventListener('error', function(e){
+  const el = document.getElementById('errStrip');
+  if(el){ el.style.display='block'; el.textContent = '⚠️ ' + (e.message || 'Script error'); }
+});
 /* ============================================================
    InstaBuilt — Timber Village  (single-file pixel village builder)
    ============================================================ */
@@ -390,25 +397,27 @@ function genMap(){
       if(dx*dx+dy*dy < 4.2) t='water';
       // dirt path along bottom row
       if(y===ROWS-1) t='path';
-      // clustered forest using value noise
-      const n = Math.sin(x*0.45)*0.5 + Math.sin(y*0.55+1.7)*0.5;
-      const jitter = (rnd2(x,y)-0.5)*0.5;
-      if(t==='grass' && y>1 && y<ROWS-2 && n+jitter > 0.18){
+      // clustered forest using value noise — dense, like real woodland
+      const n = Math.sin(x*0.5)*0.5 + Math.sin(y*0.6+1.7)*0.5;
+      const jitter = (rnd2(x,y)-0.5)*0.6;
+      const border = (y<2 || y>=ROWS-2 || x<2 || x>=COLS-2); // thick tree ring around the map
+      if(t==='grass' && (border || n+jitter > -0.08)){
         // different kinds & sizes of trees
         const r = rnd2(x*3+1, y*7+2);
         if(r < 0.52) t='tree';        // regular
-        else if(r < 0.72) t='treePine'; // pine
-        else if(r < 0.87) t='treeBig';  // big old oak
+        else if(r < 0.70) t='treePine'; // pine
+        else if(r < 0.86) t='treeBig';  // big old oak
         else t='treeRed';               // red leaves
       }
       let detail = null;
       if(t==='grass'){
         const d = rnd2(x*11+5, y*13+8);
-        if(d < 0.05) detail='bush';
-        else if(d < 0.09) detail='rock';
-        else if(d < 0.115) detail='mush';
-        else if(d < 0.16) detail='tuft';
-        else if(d < 0.21) detail='flower';
+        if(d < 0.07) detail='bush';
+        else if(d < 0.12) detail='rock';
+        else if(d < 0.15) detail='mush';
+        else if(d < 0.20) detail='tuft';
+        else if(d < 0.26) detail='flower';
+        else if(d < 0.30) detail='log';
       }
       S.grid.push({t, grow:0, regrow:0, occupied:false, detail});
     }
@@ -420,6 +429,11 @@ function genMap(){
       const c = tile(x,y);
       if(c){ c.t='grass'; c.occupied=false; c.detail = (x===cx && y===cy) ? 'campfire' : null; }
     }
+  }
+  // a second small glade, so the player has room to expand
+  for(let y=13;y<=15;y++) for(let x=5;x<=8;x++){
+    const c = tile(x,y);
+    if(c && c.t!=='water' && c.t!=='path'){ c.t='grass'; c.occupied=false; c.detail=null; }
   }
   S.spawn = {x:cx, y:cy};
 }
@@ -920,6 +934,9 @@ function drawTree(x,y,cell){
   const seed = x*13+y*7;
   const shaking = S.sawing && S.sawing.x===x && S.sawing.y===y;
   const ox = shaking ? Math.sin(performance.now()/45)*2.5 : 0;
+  // soft ground shadow under the canopy (classic pixel-forest look)
+  ctx.fillStyle = 'rgba(20,40,15,0.25)';
+  ctx.beginPath(); ctx.ellipse(px+16+ox, py+29, 7, 3, 0, 0, Math.PI*2); ctx.fill();
   if(cell.t==='treePine'){
     // pine: stacked pixel triangles
     ctx.fillStyle = C.canopyC;
@@ -1050,6 +1067,18 @@ function drawDetail(x,y,cell){
     ctx.fillRect(px+14, py+27, 1, 3);
     ctx.fillStyle = '#e5484d';
     ctx.fillRect(px+16, py+25, 1, 1);
+    return;
+  }
+  if(d==='log'){
+    ctx.fillStyle = C.woodD;
+    ctx.fillRect(px+8, py+25, 15, 3);
+    ctx.fillStyle = C.woodL;
+    ctx.fillRect(px+8, py+25, 15, 1);
+    ctx.fillStyle = C.woodD;
+    ctx.fillRect(px+10, py+23, 2, 3);
+    ctx.fillRect(px+19, py+23, 2, 3);
+    ctx.fillStyle = '#4f9a3a';
+    ctx.fillRect(px+14, py+27, 6, 2);
   }
 }
 function drawHouse(h, alpha){
@@ -1152,6 +1181,16 @@ function drawMap(){
         if(rnd2(x,y) < 0.09 && (cell.t==='grass'||cell.t==='sapling')){
           ctx.fillStyle = C.grassDark;
           ctx.fillRect(px+6+(rnd2(x,y*3)*16|0), py+10+(rnd2(y,x)*16|0), 2, 2);
+        }
+        const gv = rnd2(x*17+3, y*19+7);
+        if(gv < 0.12 && cell.t==='grass'){ // moss patch
+          ctx.fillStyle = 'rgba(47,102,35,0.4)';
+          ctx.fillRect(px+4, py+6, 10, 8);
+          ctx.fillRect(px+16, py+16, 8, 6);
+        } else if(gv > 0.56 && gv < 0.64 && cell.t==='grass'){ // dirt speckle
+          ctx.fillStyle = '#9c6a4c';
+          ctx.fillRect(px+6+(rnd2(x,y*5)*18|0), py+8+(rnd2(y,x*5)*18|0), 2, 1);
+          ctx.fillRect(px+14+(rnd2(x*2,y*7)*12|0), py+18+(rnd2(y*2,x*7)*10|0), 2, 1);
         }
       }
     }
@@ -1370,6 +1409,8 @@ function startGame(){
   showScreen('none');
   setTool('axe');
   paused = false;
+  fitCanvas();
+  render();
   pushMsg('🪓 Welcome to your forest! Click a tree with the Axe to chop wood.', 'gold');
   updateHUD();
 }
@@ -1562,7 +1603,7 @@ document.querySelectorAll('.tool-btn').forEach(b=>{
   b.addEventListener('click', ()=>setTool(b.dataset.tool));
 });
 $('btn-start').addEventListener('click', ()=>{ audioInit(); startGame(); });
-$('btn-continue').addEventListener('click', ()=>{ audioInit(); if(loadSave()){ paused=false; showScreen('none'); refreshBuildMenu(); refreshCustPanel(); renderMsgLog(); updateHUD(); if(winShown) showWin(); } else { startGame(); } });
+$('btn-continue').addEventListener('click', ()=>{ audioInit(); if(loadSave()){ paused=false; showScreen('none'); fitCanvas(); render(); refreshBuildMenu(); refreshCustPanel(); renderMsgLog(); updateHUD(); if(winShown) showWin(); } else { startGame(); } });
 $('btn-resume').addEventListener('click', ()=>{ paused=false; showScreen('none'); });
 $('btn-pause').addEventListener('click', ()=>{ if(!S||winShown) return; paused=true; showScreen('pause'); });
 $('btn-menu').addEventListener('click', ()=>{ paused=false; showScreen('menu'); });
@@ -1608,14 +1649,18 @@ function loop(t){
 
 /* ---------- boot ---------- */
 function fitCanvas(){
-  const scale = Math.min(window.innerWidth/W, window.innerHeight/H);
+  const vw = window.innerWidth || document.documentElement.clientWidth || 1280;
+  const vh = window.innerHeight || document.documentElement.clientHeight || 800;
+  const scale = Math.max(0.35, Math.min(vw/W, vh/H));
   canvas.style.width = Math.floor(W*scale)+'px';
   canvas.style.height = Math.floor(H*scale)+'px';
 }
 window.addEventListener('resize', fitCanvas);
+window.addEventListener('orientationchange', fitCanvas);
 newGame();        // generate & render the colorful forest behind the menu
 paused = true;    // menu is open — game time frozen until START
 fitCanvas();
+render();         // draw the first frame synchronously — the forest is visible even before any animation tick
 $('btn-continue').style.display = hasSave() ? '' : 'none';
 renderMsgLog();
 refreshBuildMenu();
