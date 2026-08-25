@@ -214,7 +214,7 @@
       <button class="btn ghost" id="btn-continue" style="display:none">Continue</button>
     </div>
     <div class="row">
-      <button class="btn ghost small" id="btn-skip-demo">⏩ Skip Intro</button>
+      <button class="btn ghost small" id="btn-watch-demo">🎬 Watch Intro</button>
       <button class="btn ghost small" id="btn-howto">❓ How to Play</button>
     </div>
     <p style="font-size:11px;opacity:.65;margin-top:12px">🎮 Click / tap the map · <span class="kbd">1</span><span class="kbd">2</span><span class="kbd">3</span> tools · <span class="kbd">Esc</span> deselect</p>
@@ -1063,12 +1063,11 @@ function showScreen(name){
   const el = $('ov-'+name);
   if(el) el.classList.remove('hidden');
 }
-function demoSeen(){ try{ return !!localStorage.getItem('instabuilt-demo-seen'); }catch(e){ return false; } }
 function startGame(){
   newGame();
   showScreen('none');
-  if(!demoSeen()) runDemo();
-  else pushMsg('🎮 Build your village! Reach 1000 reputation to win. (❓ for help)', 'gold');
+  setTool('axe');
+  pushMsg('🪓 Welcome to your forest! Click a tree with the Axe to chop wood.', 'gold');
   updateHUD();
 }
 function showWin(){
@@ -1182,7 +1181,6 @@ function spawnDemoCustomer(){
 function endDemo(){
   demo = null;
   $('demoBar').classList.add('hidden');
-  try{ localStorage.setItem('instabuilt-demo-seen','1'); }catch(e){}
   pushMsg('🎮 The forest is yours! Build your village — reach 1000 reputation to win.', 'gold');
 }
 function drawForeman(){
@@ -1271,7 +1269,10 @@ $('btn-keep').addEventListener('click', ()=>{ showScreen('none'); });
 $('btn-help').addEventListener('click', ()=>{ if(!S) return; showScreen('help'); });
 $('btn-close-help').addEventListener('click', ()=>{ showScreen('none'); });
 $('btn-howto').addEventListener('click', ()=>{ showScreen('help'); });
-$('btn-skip-demo').addEventListener('click', ()=>{ try{localStorage.setItem('instabuilt-demo-seen','1');}catch(e){} startGame(); });
+$('btn-watch-demo').addEventListener('click', ()=>{
+  startGame();   // fresh game in the forest
+  runDemo();     // then the foreman shows how to chop & build
+});
 $('btn-mute').addEventListener('click', ()=>{ muted=!muted; $('btn-mute').textContent = muted?'🔇':'🔊'; });
 window.addEventListener('keydown', (e)=>{
   if(e.key==='Escape'){ selBP=null; refreshBuildMenu(); updateHint(); }
@@ -1314,6 +1315,7 @@ window.__game = {
   toast: (m,k)=>pushMsg(m,k),
   currentTool: ()=>tool,
   demo: ()=>demo,
+  runDemo,
 };
 </script>
 </body>
