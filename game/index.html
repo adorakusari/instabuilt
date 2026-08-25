@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>InstaBuilt — Timber Village</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --wood:#a8743d; --wood-d:#6b4a2b; --cream:#f5e6c8; --ink:#2b2118;
+    --panel:#3a2c1e; --panel-l:#4d3a28; --line:#8a5f2f; --gold:#f2c94c; --red:#e5484d; --green:#4f9a3a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:#1d1710 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="%23261d12"/><rect width="4" height="4" fill="%23221910"/></svg>');
+    color:var(--cream);
+    font-family:'Segoe UI',system-ui,sans-serif;
+    display:flex;flex-direction:column;align-items:center;
+    user-select:none;-webkit-user-select:none;
+    overflow-x:hidden;
+  }
+  .pixel{font-family:'Press Start 2P','Courier New',monospace;}
+  header.site{
+    width:100%;max-width:1000px;padding:14px 16px 8px;display:flex;align-items:center;gap:10px;
+  }
+  header.site .logo{font-size:13px;letter-spacing:1px;color:var(--gold);text-shadow:2px 2px 0 #000;}
+  header.site .logo span{color:var(--cream);}
+  header.site .back{margin-left:auto;font-size:11px;color:var(--cream);background:var(--panel);border:2px solid var(--line);padding:6px 10px;text-decoration:none;font-family:'Press Start 2P',monospace;}
+  header.site .back:hover{background:var(--panel-l);}
+  #gameWrap{
+    width:100%;max-width:1000px;padding:8px;
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+  }
+  #topHUD{
+    width:100%;display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+    background:var(--panel);border:3px solid var(--line);border-radius:4px;
+    padding:8px 10px;font-size:12px;
+  }
+  .hud-item{display:flex;align-items:center;gap:5px;background:#00000044;border:2px solid #00000033;padding:4px 8px;border-radius:3px;}
+  .hud-item b{color:var(--gold);}
+  .hud-item .ico{font-size:15px;line-height:1;}
+  #hud-env{flex:1;min-width:140px;}
+  #envBar{position:relative;width:100%;height:12px;background:#2b2118;border:2px solid #000;margin-top:3px;}
+  #envFill{position:absolute;left:0;top:0;bottom:0;width:100%;background:linear-gradient(90deg,#3f7d2f,#4f9a3a);transition:width .4s;}
+  #envFill.warn{background:linear-gradient(90deg,#c98a2f,#e5a63a);}
+  #envFill.bad{background:linear-gradient(90deg,#b53a2f,#e5484d);}
+  #phaseLbl{font-size:11px;}
+  #btnMute,#btnPause,#btnHelp{background:var(--panel-l);border:2px solid var(--line);color:var(--cream);font-size:14px;width:34px;height:30px;cursor:pointer;border-radius:3px;}
+  #btnMute:hover,#btnPause:hover,#btnHelp:hover{filter:brightness(1.2);}
+  #canvasShell{position:relative;width:100%;max-width:768px;border:4px solid var(--line);border-radius:4px;box-shadow:0 8px 24px #0009;}
+  canvas#gameCanvas{display:block;width:100%;height:auto;image-rendering:pixelated;image-rendering:crisp-edges;cursor:crosshair;background:#2b2118;}
+  #lowerRow{width:100%;display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;}
+  #leftPanel,#rightPanel{
+    background:var(--panel);border:3px solid var(--line);border-radius:4px;padding:8px;
+  }
+  #leftPanel{flex:0 0 148px;display:flex;flex-direction:column;gap:6px;}
+  #rightPanel{flex:1;min-width:250px;display:flex;flex-direction:column;gap:8px;}
+  .panel-title{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--gold);letter-spacing:1px;}
+  .tool-btn{
+    display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;cursor:pointer;
+    background:var(--panel-l);border:2px solid var(--line);border-radius:3px;color:var(--cream);
+    font-size:12px;text-align:left;
+  }
+  .tool-btn .t-ico{font-size:18px;}
+  .tool-btn .t-name{font-size:11px;font-weight:600;display:block;}
+  .tool-btn .t-desc{font-size:9px;opacity:.7;display:block;}
+  .tool-btn.active{border-color:var(--gold);background:#4d3a1e;box-shadow:0 0 0 2px #f2c94c55 inset;}
+  .bp-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .bp-btn{
+    padding:6px;cursor:pointer;background:var(--panel-l);border:2px solid var(--line);border-radius:3px;
+    color:var(--cream);text-align:left;position:relative;
+  }
+  .bp-btn:hover{border-color:var(--gold);}
+  .bp-btn.sel{border-color:var(--gold);background:#4d3a1e;}
+  .bp-btn.locked{opacity:.45;cursor:not-allowed;}
+  .bp-btn .bp-name{font-size:10px;font-weight:700;display:block;}
+  .bp-btn .bp-meta{font-size:9px;opacity:.85;display:block;margin-top:2px;}
+  .bp-btn .bp-lock{position:absolute;top:4px;right:4px;font-size:8px;color:var(--gold);}
+  .bp-btn .bp-ico{font-size:16px;display:block;margin-bottom:2px;}
+  #variantRow{display:flex;align-items:center;gap:6px;font-size:11px;}
+  .vchip{width:20px;height:20px;border:2px solid #000;cursor:pointer;border-radius:2px;display:inline-block;}
+  .vchip.sel{outline:2px solid var(--gold);}
+  #custList{display:flex;flex-direction:column;gap:5px;min-height:44px;}
+  .cust{
+    display:flex;align-items:center;gap:8px;background:#00000044;border:2px solid #00000033;
+    border-radius:3px;padding:5px 7px;font-size:11px;
+  }
+  .cust .c-ico{font-size:18px;}
+  .cust .c-want{font-weight:700;}
+  .cust .c-wait{color:#ffb3b3;font-size:10px;}
+  .cust.leaving{opacity:.5;}
+  #msgLog{display:flex;flex-direction:column;gap:3px;max-height:96px;overflow:hidden;}
+  .msg{font-size:10px;opacity:.9;border-left:3px solid var(--line);padding-left:6px;}
+  .msg.good{border-color:var(--green);}
+  .msg.bad{border-color:var(--red);}
+  .msg.gold{border-color:var(--gold);}
+  #hintBar{
+    width:100%;max-width:1000px;padding:6px 12px;text-align:center;font-size:11px;
+    color:#000;background:var(--cream);border:2px solid var(--wood-d);border-radius:3px;margin-bottom:14px;
+  }
+  /* overlays */
+  .overlay{
+    position:fixed;inset:0;background:#000000cc;display:flex;align-items:center;justify-content:center;
+    z-index:50;padding:16px;opacity:1;transition:opacity .25s;
+  }
+  .overlay.hidden{display:none;}
+  .modal{
+    background:var(--panel);border:4px solid var(--gold);border-radius:6px;max-width:560px;width:100%;
+    padding:22px;text-align:center;box-shadow:0 10px 40px #000;
+  }
+  .modal h1{font-family:'Press Start 2P',monospace;font-size:18px;color:var(--gold);line-height:1.5;margin-bottom:10px;}
+  .modal h2{font-family:'Press Start 2P',monospace;font-size:13px;color:var(--cream);margin:10px 0 6px;}
+  .modal p{font-size:13px;line-height:1.55;opacity:.92;margin:6px 0;}
+  .modal .row{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap;}
+  .btn{
+    font-family:'Press Start 2P',monospace;font-size:11px;padding:10px 16px;cursor:pointer;border-radius:3px;
+    border:2px solid #000;color:#1d1710;background:var(--gold);
+  }
+  .btn:hover{filter:brightness(1.1);}
+  .btn.ghost{background:var(--panel-l);color:var(--cream);border-color:var(--line);}
+  .btn.green{background:var(--green);color:#fff;}
+  .stats{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:8px;font-size:12px;}
+  .stats .s b{color:var(--gold);}
+  #tutModal .tut-step{margin:8px 0;}
+  .kbd{background:#000;border:1px solid #666;border-radius:3px;padding:1px 5px;font-family:monospace;font-size:11px;}
+  .footer-note{font-size:10px;opacity:.55;padding:4px 0 12px;text-align:center;}
+  @media (max-width:760px){
+    #lowerRow{flex-direction:column;}
+    #leftPanel{flex:1;width:100%;flex-direction:row;flex-wrap:wrap;}
+    .tool-btn{width:auto;flex:1;min-width:110px;}
+    #rightPanel{min-width:0;width:100%;}
+    .modal h1{font-size:14px;}
+  }
+</style>
+</head>
+<body>
+<header class="site">
+  <div class="logo pixel">🏡 Insta<span>Built</span></div>
+  <a class="back" href="../index.html">← Back to site</a>
+</header>
+
+<div id="gameWrap">
+  <div id="topHUD">
+    <div class="hud-item"><span class="ico">📅</span><span id="hud-day" class="pixel">Day 1</span></div>
+    <div class="hud-item"><span class="ico" id="hud-weather-ico">☀️</span><span id="hud-weather" class="pixel" style="font-size:10px;">Sunny</span></div>
+    <div class="hud-item"><span id="hud-forecast" style="font-size:10px;">Next: —</span></div>
+    <div class="hud-item"><span class="ico">🪵</span><b id="hud-wood">0</b></div>
+    <div class="hud-item"><span class="ico">🪙</span><b id="hud-coins">0</b></div>
+    <div class="hud-item"><span class="ico">⭐</span><b id="hud-rep">0</b><span style="opacity:.7" id="hud-rep-next"></span></div>
+    <div class="hud-item"><span class="ico">🏅</span><span id="hud-level" class="pixel" style="font-size:10px;">Lv1</span></div>
+    <div class="hud-item" id="hud-env"><span style="font-size:10px;">🌲 Environment</span><div id="envBar"><div id="envFill"></div></div></div>
+    <div class="hud-item"><span class="ico" id="phaseIco">🌅</span><span id="phaseLbl">Morning</span></div>
+    <div style="margin-left:auto;display:flex;gap:4px;">
+      <button id="btnHelp" title="How to play">❓</button>
+      <button id="btnMute" title="Sound on/off">🔊</button>
+      <button id="btnPause" title="Pause">⏸️</button>
+    </div>
+  </div>
+
+  <div id="canvasShell"><canvas id="gameCanvas" width="768" height="512"></canvas></div>
+
+  <div id="lowerRow">
+    <div id="leftPanel">
+      <div class="panel-title">TOOLS</div>
+      <button class="tool-btn active" id="tool-axe" data-tool="axe">
+        <span class="t-ico">🪓</span><span><span class="t-name">Axe</span><span class="t-desc">Chop trees for wood</span></span>
+      </button>
+      <button class="tool-btn" id="tool-plant" data-tool="plant">
+        <span class="t-ico">🌱</span><span><span class="t-name">Plant</span><span class="t-desc">Grow new trees (free)</span></span>
+      </button>
+      <button class="tool-btn" id="tool-hammer" data-tool="hammer">
+        <span class="t-ico">🔨</span><span><span class="t-name">Hammer</span><span class="t-desc">Speed up a build (5 wood)</span></span>
+      </button>
+      <div class="panel-title" style="margin-top:4px;">BUILD</div>
+      <div id="variantRow"><span style="opacity:.8">Roof:</span></div>
+      <div class="bp-grid" id="bpGrid"></div>
+    </div>
+    <div id="rightPanel">
+      <div class="panel-title">CUSTOMERS</div>
+      <div id="custList"><div class="msg" style="border-color:transparent;opacity:.6">Waiting for the first customer…</div></div>
+      <div class="panel-title">VILLAGE LOG</div>
+      <div id="msgLog"></div>
+    </div>
+  </div>
+</div>
+<div id="hintBar">🪓 <b>Chop trees</b> for wood · 🌱 plant saplings to keep the forest healthy · pick a house from <b>BUILD</b> and click the grass to place it · customers move in when it's done!</div>
+
+<!-- Menu overlay -->
+<div class="overlay" id="ov-menu">
+  <div class="modal">
+    <h1>🌲 INSTABUILT<br/>TIMBER VILLAGE</h1>
+    <p>Turn a small forest plot into a thriving wooden village.<br/>Harvest <b>sustainably</b>, build beautiful houses, and keep your customers &amp; the environment happy.</p>
+    <div class="row">
+      <button class="btn" id="btn-start">▶ START</button>
+      <button class="btn ghost" id="btn-continue" style="display:none">Continue</button>
+    </div>
+    <p style="font-size:11px;opacity:.65;margin-top:12px">🎮 Click / tap the map · <span class="kbd">1</span><span class="kbd">2</span><span class="kbd">3</span> tools · <span class="kbd">Esc</span> deselect</p>
+  </div>
+</div>
+
+<!-- Pause overlay -->
+<div class="overlay hidden" id="ov-pause">
+  <div class="modal">
+    <h1>⏸ PAUSED</h1>
+    <div class="row">
+      <button class="btn" id="btn-resume">Resume</button>
+      <button class="btn ghost" id="btn-restart">New Game</button>
+      <button class="btn ghost" id="btn-menu">Main Menu</button>
+    </div>
+  </div>
+</div>
+
+<!-- Win overlay -->
+<div class="overlay hidden" id="ov-win">
+  <div class="modal">
+    <h1>🏆 VILLAGE THRIVES!</h1>
+    <p>Your wooden village is the talk of the valley. Beautiful houses, happy customers, and a forest that keeps on giving. That's <b>sustainable building</b>, InstaBuilt style!</p>
+    <div class="stats" id="winStats"></div>
+    <div class="row">
+      <button class="btn green" id="btn-keep">Keep Playing</button>
+      <button class="btn ghost" id="btn-again">New Game</button>
+    </div>
+  </div>
+</div>
+
+<!-- Help overlay -->
+<div class="overlay hidden" id="ov-help">
+  <div class="modal">
+    <h2>HOW TO PLAY</h2>
+    <p>🪓 <b>Axe</b> — click a tree to chop it for wood. Every tree felled leaves a stump that regrows.</p>
+    <p>🌱 <b>Plant</b> — click grass to plant a free sapling. Saplings grow into mature trees over ~8 days (rain speeds it up).</p>
+    <p>🔨 <b>Hammer</b> — click a house under construction to boost it +20% for 5 wood (once per house per day).</p>
+    <p>🏠 <b>Build</b> — pick a blueprint, choose a roof color, click grass to place. Builders work automatically; weather &amp; night affect speed.</p>
+    <p>🧑 <b>Customers</b> — they want specific houses. Complete them before they leave to earn coins &amp; reputation. Reach <b>1000 rep</b> to win!</p>
+    <p>🌲 <b>Environment</b> — keep forest coverage above 70% for a green bonus. Below 30% and customers stop coming.</p>
+    <p>⛈️ <b>Weather</b> — rain grows trees faster, storms halt building and can damage work in progress.</p>
+    <div class="row"><button class="btn" id="btn-close-help">Got it</button></div>
+  </div>
+</div>
+
+<!-- Tutorial overlay -->
+<div class="overlay hidden" id="ov-tut">
+  <div class="modal" id="tutModal">
+    <h2 id="tutTitle">Welcome, builder!</h2>
+    <div id="tutBody"></div>
+    <div class="row">
+      <button class="btn ghost" id="tutSkip" style="display:none">Skip</button>
+      <button class="btn" id="tutNext">Next ▶</button>
+    </div>
+  </div>
+</div>
+
+<div class="footer-note">InstaBuilt · Timber Village — a tiny sustainable village builder. Progress autosaves.</div>
+
+<script>
+'use strict';
+/* ============================================================
+   InstaBuilt — Timber Village  (single-file pixel village builder)
+   ============================================================ */
+
+/* ---------- config ---------- */
+const TILE = 32, COLS = 24, ROWS = 16;
+const W = COLS * TILE, H = ROWS * TILE;
+const PHASE_SECONDS = 12;   // 4 phases -> 48s per day
+const SAVE_KEY = 'instabuilt-timber-v1';
+
+const C = {
+  grassA:'#7cb35a', grassB:'#74a954', grassDark:'#5d8f43',
+  dirt:'#a97c4f', path:'#8a6a44', pathEdge:'#75582f',
+  trunk:'#6b4a2b', bark:'#573a20', canopyA:'#3f7d2f', canopyB:'#4f9a3a', canopyC:'#2f6623',
+  wood:'#a8743d', woodD:'#8a5f2f', woodL:'#c08a4f',
+  water:'#4a8fd4', waterD:'#3a77b8',
+  scaffold:'#c9a86a',
+  skin:'#e8b88a', hair:'#4a3020', pants:'#4a5a6a',
+  white:'#ffffff', black:'#1a1a1a', gold:'#f2c94c', red:'#e5484d',
+};
+
+const ROOFS = [
+  {id:'red',  name:'Red',   top:'#c95c3e', side:'#b5533a', dark:'#8f3d2a'},
+  {id:'brown',name:'Brown', top:'#a8743d', side:'#8a5f2f', dark:'#6b4a2b'},
+  {id:'green',name:'Green', top:'#5a8a3a', side:'#4a7630', dark:'#3a5c26'},
+  {id:'gray', name:'Slate', top:'#8d8d96', side:'#76767f', dark:'#5c5c64'},
+];
+
+const BLUEPRINTS = [
+  {id:'cabin',   name:'Tiny Cabin',    wood:25, days:2, w:2, h:2, rep:40,  coins:35,  unlockLv:1, ico:'🛖'},
+  {id:'cottage', name:'Cozy Cottage',  wood:50, days:3, w:3, h:2, rep:80,  coins:65,  unlockLv:1, ico:'🏡'},
+  {id:'house',   name:'Family House',  wood:90, days:5, w:3, h:3, rep:150, coins:120, unlockLv:3, ico:'🏠'},
+  {id:'lodge',   name:'Luxury Lodge',  wood:150,days:7, w:4, h:3, rep:260, coins:200, unlockLv:5, ico:'🏰'},
+];
+const LVL_REP = [0, 150, 350, 650, 1000]; // level 1..5
+const PHASES = [
+  {name:'Morning', ico:'🌅', mult:1.1},
+  {name:'Noon',    ico:'☀️', mult:1.2},
+  {name:'Evening', ico:'🌇', mult:1.0},
+  {name:'Night',   ico:'🌙', mult:0.6},
+];
+const WEATHERS = {
+  sunny:  {name:'Sunny',  ico:'☀️', build:1.30, growth:1.0},
+  cloudy: {name:'Cloudy', ico:'⛅', build:1.00, growth:1.25},
+  rain:   {name:'Rain',   ico:'🌧️', build:0.75, growth:2.0},
+  storm:  {name:'Storm',  ico:'⛈️', build:0.00, growth:0.5},
+};
+const WEATHER_ROLL = [ ['sunny',0.32], ['cloudy',0.30], ['rain',0.26], ['storm',0.12] ];
+
+/* ---------- tiny sprites (chars: s=skin t=shirt p=pants h=hair) ---------- */
+const SPR_PERSON = {
+  idle:['..hhhh..','..hssh..','..ssss..','...ss...','.ttttt..','.ttttt..','..ppp...','.p...p..'],
+  walk:['..hhhh..','..hssh..','..ssss..','...ss...','.ttttt..','.ttttt..','..p.p...','..p.p...'],
+};
+const SPR_SAPLING = [
+  '...gg...','..gggg..','..gggg..','...gg...','...tt...','...tt...','...tt...','...tt...'
+];
+const SPR_STUMP = [
+  '........','........','.tttttt.','tttttttt','.tttttt.','...tt...','...tt...','........'
+];
+const SHIRTS = ['#d95d39','#3f7dbf','#8fbf3f','#b85cd9','#e8b83a','#4fbfa5'];
+
+/* ---------- state ---------- */
+let S = null;
+let tool = 'axe';
+let selBP = null;          // selected blueprint id or null
+let roofIdx = 0;
+let paused = false, muted = false, winShown = false;
+let particles = [], floaties = [], msgQueue = [];
+let hover = null;          // {tx,ty}
+let lastT = 0, acc = 0, saveTimer = 0;
+let shake = 0;             // screen shake (storm)
+let playerLevel = 1;
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+/* ---------- grid helpers ---------- */
+function inBounds(x,y){ return x>=0 && y>=0 && x<COLS && y<ROWS; }
+function tile(x,y){ return inBounds(x,y) ? S.grid[y*COLS+x] : null; }
+function setTile(x,y,t,extra){ const c=tile(x,y); if(c){ c.t=t; Object.assign(c, extra||{}); } }
+function isGrass(x,y){ const c=tile(x,y); return c && c.t==='grass'; }
+function isBuildable(x,y){ return isGrass(x,y); }
+function rnd01(seed){ let s = (seed*9301+49297)%233280; return s/233280; }
+function hash2(x,y){ return (x*374761393 + y*668265263) ^ 0xDEADBEEF; }
+function rnd2(x,y){ const h = hash2(x,y)>>>0; return (h%1000)/1000; }
+
+/* ---------- new game / save ---------- */
+function newGame(){
+  S = {
+    day:1, phase:0, phaseT:0,
+    wood:25, coins:50, rep:0,
+    weather:'sunny', nextWeather:'cloudy',
+    grid:[], houses:[], customers:[], custId:1,
+    msgs:[], forestStart:0, daysSinceCust:0, stormMsgShown:false,
+    unlocked:[1], boostUsed:0,
+  };
+  genMap();
+  S.forestStart = countForest();
+  selBP = null; tool='axe';
+  particles=[]; floaties=[]; winShown=false; playerLevel=1;
+  pushMsg('Welcome to your forest plot! 🪓 Chop trees to get started.', 'gold');
+  refreshBuildMenu(); refreshCustPanel(); updateHUD(); updateHint();
+}
+
+function genMap(){
+  for(let y=0;y<ROWS;y++){
+    for(let x=0;x<COLS;x++){
+      let t='grass';
+      // pond in top-left
+      const dx=x-2.5, dy=y-2.2;
+      if(dx*dx+dy*dy < 4.2) t='water';
+      // dirt path along bottom row
+      if(y===ROWS-1) t='path';
+      // clustered forest using value noise
+      const n = Math.sin(x*0.45)*0.5 + Math.sin(y*0.55+1.7)*0.5;
+      const jitter = (rnd2(x,y)-0.5)*0.5;
+      if(t==='grass' && y>1 && y<ROWS-2 && n+jitter > 0.18) t='tree';
+      S.grid.push({t, grow:0, regrow:0, occupied:false});
+    }
+  }
+}
+
+function countForest(){
+  let c=0;
+  for(const cell of S.grid){ if(cell.t==='tree') c++; else if(cell.t==='sapling') c+=0.5; }
+  return c;
+}
+function envPercent(){
+  if(!S || !S.forestStart) return 100;
+  return Math.max(0, Math.min(100, countForest()/S.forestStart*100));
+}
+
+function saveGame(){
+  try{
+    const d = {day:S.day, phase:S.phase, wood:S.wood, coins:S.coins, rep:S.rep,
+      weather:S.weather, nextWeather:S.nextWeather, grid:S.grid, houses:S.houses,
+      customers:S.customers, custId:S.custId, forestStart:S.forestStart,
+      daysSinceCust:S.daysSinceCust, unlocked:S.unlocked, msgs:S.msgs.slice(0,6)};
+    localStorage.setItem(SAVE_KEY, JSON.stringify(d));
+  }catch(e){ /* ignore */ }
+}
+function loadSave(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return false;
+    const d = JSON.parse(raw);
+    if(!d || !d.grid || d.grid.length!==COLS*ROWS) return false;
+    S = {day:d.day, phase:d.phase||0, phaseT:0, wood:d.wood, coins:d.coins, rep:d.rep,
+      weather:d.weather||'sunny', nextWeather:d.nextWeather||'cloudy', grid:d.grid,
+      houses:d.houses||[], customers:d.customers||[], custId:d.custId||1,
+      msgs:d.msgs||[], forestStart:d.forestStart||countForestFromGrid(d.grid),
+      daysSinceCust:d.daysSinceCust||0, unlocked:d.unlocked||[1], stormMsgShown:false, boostUsed:0};
+    playerLevel = levelFromRep();
+    winShown = playerLevel>=5;
+    return true;
+  }catch(e){ return false; }
+}
+function countForestFromGrid(g){ let c=0; for(const cell of g){ if(cell.t==='tree')c++; else if(cell.t==='sapling')c+=0.5; } return c; }
+function hasSave(){ try{ return !!localStorage.getItem(SAVE_KEY); }catch(e){ return false; } }
+
+/* ---------- economy ---------- */
+function levelFromRep(){ let lv=1; for(let i=0;i<LVL_REP.length;i++){ if(S.rep>=LVL_REP[i]) lv=i+1; } return lv; }
+function repToNext(){ for(let i=0;i<LVL_REP.length;i++){ if(S.rep<LVL_REP[i]) return LVL_REP[i]-S.rep; } return 0; }
+function envBonus(){
+  const e = envPercent();
+  return e>=70 ? 1.2 : e<30 ? 0.7 : 1;
+}
+function maxCustomers(){ return playerLevel>=2 ? 3 : 2; }
+
+function gainRep(n){
+  const before = playerLevel;
+  S.rep += Math.round(n);
+  playerLevel = levelFromRep();
+  if(playerLevel>before){
+    pushMsg('🌟 Village level '+playerLevel+'! New houses unlocked!'+(playerLevel>=5?' You win! 🏆':''), 'gold');
+    if(playerLevel===5){ S.coins += 100; winShown=true; showWin(); }
+    else if(playerLevel===3){ S.coins += 50; }
+    refreshBuildMenu();
+  }
+}
+function gainCoins(n){
+  const b = Math.round(n*envBonus());
+  S.coins += b;
+  addFloat(canvas.width/2, 40, '+'+b+' 🪙', C.gold);
+}
+
+/* ---------- actions ---------- */
+function chopTree(x,y){
+  const cell = tile(x,y);
+  if(!cell || cell.t!=='tree') return;
+  const w = 5 + Math.floor(rnd2(x*3,y*7)*3); // 5-7 wood
+  S.wood += w;
+  setTile(x,y,'stump',{regrow:5});
+  cell.occupied=false;
+  addFloat(x*TILE+TILE/2, y*TILE+6, '+'+w+' 🪵', C.woodL);
+  for(let i=0;i<8;i++){
+    particles.push({x:x*TILE+16, y:y*TILE+16, vx:(Math.random()-0.5)*60, vy:-20-Math.random()*50,
+      life:0.6+Math.random()*0.4, maxLife:1, size:3, color:Math.random()<0.5?C.woodL:C.woodD, kind:'chip'});
+  }
+  sfx('chop');
+  pushMsg('Chopped a tree (+'+w+' wood). Its stump will regrow.', null, true);
+  checkEnv();
+}
+function plantSapling(x,y){
+  if(!isGrass(x,y)) return;
+  setTile(x,y,'sapling',{grow:0});
+  addFloat(x*TILE+TILE/2, y*TILE+6, '🌱', C.canopyB);
+  particles.push({x:x*TILE+16, y:y*TILE+24, vx:0, vy:-10, life:0.8, maxLife:0.8, size:4, color:C.canopyB, kind:'leaf'});
+  sfx('plant');
+  pushMsg('Planted a sapling. It becomes a tree in ~8 days.', null, true);
+}
+function tryPlaceBlueprint(bp, x, y){
+  // area check
+  for(let oy=0;oy<bp.h;oy++){
+    for(let ox=0;ox<bp.w;ox++){
+      const cx=x+ox, cy=y+oy;
+      if(!isBuildable(cx,cy) || tile(cx,cy).occupied) return false;
+    }
+  }
+  if(S.wood < bp.wood){
+    pushMsg('Not enough wood! Need '+bp.wood+' 🪵 for the '+bp.name+'.', 'bad');
+    sfx('deny');
+    return false;
+  }
+  S.wood -= bp.wood;
+  const roof = ROOFS[roofIdx];
+  const id = S.houses.length+1;
+  for(let oy=0;oy<bp.h;oy++){
+    for(let ox=0;ox<bp.w;ox++){
+      const c = tile(x+ox,y+oy);
+      c.t='house'; c.occupied=true;
+      c.houseId=id;
+    }
+  }
+  S.houses.push({id, bp:bp.id, x, y, progress:0, roof:roof.id, done:false, claimed:false, boostDay:0, variant:Math.floor(rnd2(x,y)*SHIRTS.length)});
+  addFloat(x*TILE+(bp.w*TILE)/2, y*TILE-6, bp.name+' placed!', C.cream);
+  sfx('place');
+  pushMsg('🏗️ '+bp.name+' blueprint placed. Builders get to work!', null, true);
+  checkEnv();
+  return true;
+}
+function boostHouse(h){
+  if(h.done || h.claimed) { pushMsg('That house is already finished.', null, true); return; }
+  if(S.wood < 5){ pushMsg('Hammer boost costs 5 🪵.', 'bad'); sfx('deny'); return; }
+  if(h.boostDay === S.day){ pushMsg('This house was already boosted today.', null, true); sfx('deny'); return; }
+  S.wood -= 5; h.progress = Math.min(1, h.progress + 0.20); h.boostDay = S.day;
+  addFloat(h.x*TILE+(houseBP(h).w*TILE)/2, h.y*TILE-8, '💪 +20%', C.gold);
+  sfx('hammer');
+  pushMsg('Hammered the crew along! +20% progress.', null, true);
+}
+
+function checkEnv(){
+  const e = envPercent();
+  if(e>=70 && S._envOk !== true){ S._envOk=true; if(S.forestStart) pushMsg('🌲 Forest is healthy! Customers pay a GREEN bonus (+20%).', 'gold'); }
+  else if(e<30 && S._envOk !== false){ S._envOk=false; if(S.forestStart) pushMsg('⚠️ Forest is thinning! Customers are leaving. Plant more trees!', 'bad'); }
+}
+
+/* ---------- clicking the map ---------- */
+function clickTileAt(tx,ty){
+  if(!S || paused || winShown) return;
+  const cell = tile(tx,ty);
+  if(!cell) return;
+  if(selBP){
+    const bp = BLUEPRINTS.find(b=>b.id===selBP);
+    tryPlaceBlueprint(bp, tx, ty);
+    return;
+  }
+  if(tool==='axe'){ if(cell.t==='tree') chopTree(tx,ty); else if(cell.t==='stump'||cell.t==='sapling') pushMsg('That tree isn\'t mature yet.', null, true); }
+  else if(tool==='plant'){ plantSapling(tx,ty); }
+  else if(tool==='hammer'){
+    if(cell.t==='house' && cell.houseId){
+      const h = S.houses.find(hh=>hh.id===cell.houseId);
+      if(h) boostHouse(h);
+    } else pushMsg('Click a house under construction to boost it.', null, true);
+  }
+}
+
+/* ---------- customers ---------- */
+function spawnCustomer(){
+  if(S.customers.length >= maxCustomers()) return;
+  if(envPercent() < 25){
+    if(!S.envWarned){ pushMsg('🌲 Forest too thin — no customers dare visit. Plant trees!', 'bad'); S.envWarned=true; }
+    return;
+  }
+  S.envWarned=false;
+  const pool = BLUEPRINTS.filter(b=>b.unlockLv<=playerLevel);
+  // weighted: prefer what's achievable early
+  const bp = pool[Math.floor(Math.random()*pool.length)];
+  // if an empty matching house exists, they take it immediately
+  const empty = S.houses.find(h=>h.done && !h.claimed && h.bp===bp.id);
+  const c = {id:S.custId++, bp:bp.id, daysLeft:5, x:-1, y:ROWS-1, state: empty?'claim':'enter', t:0,
+    shirt:SHIRTS[Math.floor(Math.random()*SHIRTS.length)], anim:0, targetX:4+Math.random()*3};
+  S.customers.push(c);
+  if(empty){ claimHouse(empty, c); }
+  else{
+    pushMsg('🧑 New customer wants a '+bp.name+'! ('+c.daysLeft+' days)', 'gold');
+    sfx('customer');
+  }
+}
+function claimHouse(h, c){
+  if(h.claimed) return;
+  h.claimed = true;
+  const bp = houseBP(h);
+  gainCoins(bp.coins);
+  gainRep(bp.rep);
+  c.state = 'claim';
+  c.claimHouseId = h.id;
+  c.daysLeft = 0;
+  addFloat(h.x*TILE+(bp.w*TILE)/2, h.y*TILE-10, 'Moved in! +'+Math.round(bp.coins*envBonus())+' 🪙', C.gold);
+  particles.push({x:h.x*TILE+bp.w*8, y:h.y*TILE-10, vx:0, vy:-20, life:0.7, maxLife:0.7, size:5, color:C.gold, kind:'spark'});
+  sfx('coin');
+  pushMsg('🏠 Customer moved into the '+bp.name+'! +'+bp.rep+' rep, +'+Math.round(bp.coins*envBonus())+' coins.', 'good');
+  refreshCustPanel();
+}
+function houseBP(h){ return BLUEPRINTS.find(b=>b.id===h.bp); }
+function houseRect(h){ const bp=houseBP(h); return {x:h.x, y:h.y, w:bp.w, h:bp.h}; }
+
+function updateCustomers(dt){
+  for(const c of S.customers){
+    c.t += dt; c.anim += dt*4;
+    if(c.state==='enter'){
+      // walk in from the left along the path
+      c.x = Math.min(c.targetX, c.x + dt*0.8);
+      if(c.x >= c.targetX) c.state='wait';
+    } else if(c.state==='claim'){
+      // walk to their house
+      const h = S.houses.find(hh=>hh.claimed && hh.id===c.claimHouseId);
+      const tx = h ? h.x + houseBP(h).w/2 : COLS/2;
+      const ty = h ? h.y + houseBP(h).h : ROWS-1;
+      c.x += (tx - c.x)*dt*0.8;
+      c.y += (ty - c.y)*dt*0.8;
+      if(Math.abs(tx-c.x)<0.05 && Math.abs(ty-c.y)<0.05) c.state='gone';
+    } else if(c.state==='leave'){
+      c.x += dt*0.9;
+      if(c.x > COLS+1) c.state='gone';
+    }
+  }
+  S.customers = S.customers.filter(c=>c.state!=='gone');
+}
+
+/* ---------- day cycle ---------- */
+function rollWeather(){
+  let r = Math.random(), acc2 = 0;
+  let w = 'cloudy';
+  for(const [id,p] of WEATHER_ROLL){ acc2 += p; if(r<acc2){ w=id; break; } }
+  S.weather = S.nextWeather;
+  S.nextWeather = w;
+  pushMsg('☁️ Weather today: '+WEATHERS[S.weather].name+' — next: '+WEATHERS[S.nextWeather].name, null, true);
+  if(S.weather==='storm'){ pushMsg('⛈️ Storm! Building is halted and work may be damaged!', 'bad'); sfx('storm'); }
+}
+function advanceDay(){
+  S.day++;
+  S.phase = 0;
+  rollWeather();
+  // customers
+  S.daysSinceCust++;
+  const needCust = S.day===2 || (S.daysSinceCust>=2 && S.customers.length<maxCustomers());
+  if(needCust){ spawnCustomer(); S.daysSinceCust=0; }
+  // growth
+  for(let y=0;y<ROWS;y++){
+    for(let x=0;x<COLS;x++){
+      const cell = tile(x,y);
+      if(cell.t==='sapling'){
+        const g = WEATHERS[S.weather].growth;
+        cell.grow += g;
+        if(cell.grow>=8){ setTile(x,y,'tree'); cell.occupied=false; }
+      } else if(cell.t==='stump'){
+        cell.regrow--;
+        if(cell.regrow<=0) setTile(x,y,'sapling',{grow:0});
+      }
+    }
+  }
+  // storm damage
+  if(S.weather==='storm'){
+    const builds = S.houses.filter(h=>!h.done && h.progress>0.05);
+    if(builds.length && Math.random()<0.6){
+      const h = builds[Math.floor(Math.random()*builds.length)];
+      h.progress = Math.max(0, h.progress-0.15);
+      shake = 0.5;
+      pushMsg('⛈️ The storm damaged a '+houseBP(h).name+'! (-15%)', 'bad');
+    }
+  }
+  // customers waiting
+  for(const c of S.customers){
+    if(c.state==='wait'){
+      c.daysLeft--;
+      if(c.daysLeft<=0){
+        c.state='leave';
+        S.rep = Math.max(0, S.rep-5);
+        pushMsg('😞 A customer left unhappy (wanted '+houseBP(c).name+'). -5 rep', 'bad');
+      }
+    }
+  }
+  checkEnv();
+  refreshCustPanel();
+  saveGame();
+}
+
+function update(dt){
+  if(paused || !S) return;
+  // day/phase timer
+  S.phaseT += dt;
+  if(S.phaseT >= PHASE_SECONDS){
+    S.phaseT -= PHASE_SECONDS;
+    S.phase = (S.phase+1)%4;
+    if(S.phase===0) advanceDay();
+  }
+  // construction
+  const wm = WEATHERS[S.weather].build;
+  const pm = PHASES[S.phase].mult;
+  for(const h of S.houses){
+    if(h.done || h.claimed) continue;
+    h.progress = Math.min(1, h.progress + dt/(houseBP(h).days*PHASE_SECONDS*4) * wm * pm);
+    if(h.progress>=1 && !h.done){
+      h.done = true;
+      addFloat(h.x*TILE+(houseBP(h).w*TILE)/2, h.y*TILE-12, '✨ Built!', C.gold);
+      sfx('done');
+      pushMsg('✨ Your '+houseBP(h).name+' is finished!', 'good');
+      // matching waiting customer?
+      const cust = S.customers.find(c=>c.state==='wait' && c.bp===h.bp);
+      if(cust) claimHouse(h, cust);
+      refreshCustPanel();
+    }
+  }
+  updateCustomers(dt);
+  // claim any waiting customer whose requested house already stands empty
+  // (covers save/load edge: house finished while a customer was already waiting)
+  for(const h of S.houses){
+    if(h.done && !h.claimed){
+      const cust = S.customers.find(c=>c.state==='wait' && c.bp===h.bp);
+      if(cust){ claimHouse(h, cust); break; }
+    }
+  }
+  // particles & floaties
+  for(const p of particles){ p.life-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=40*dt; }
+  particles = particles.filter(p=>p.life>0);
+  for(const f of floaties){ f.life-=dt; f.y-=22*dt; }
+  floaties = floaties.filter(f=>f.life>0);
+  if(shake>0) shake-=dt;
+  // autosave every 20s
+  saveTimer += dt;
+  if(saveTimer>20){ saveTimer=0; saveGame(); }
+}
+
+/* ---------- rendering ---------- */
+function drawSprite(rows, px, py, colors, scale){
+  scale = scale||1;
+  for(let y=0;y<rows.length;y++){
+    for(let x=0;x<rows[y].length;x++){
+      const ch = rows[y][x];
+      if(ch==='.') continue;
+      const col = colors[ch] || ch;
+      ctx.fillStyle = col;
+      ctx.fillRect(px+x*scale, py+y*scale, scale, scale);
+    }
+  }
+}
+function drawTree(x,y,seed){
+  const px = x*TILE, py = y*TILE;
+  const r = 9 + Math.floor(rnd2(seed,seed+1)*3);
+  // canopy: dithered circle
+  ctx.fillStyle = C.canopyA;
+  ctx.beginPath(); ctx.arc(px+16, py+12, r, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = C.canopyB;
+  for(let i=0;i<14;i++){
+    const a = rnd2(seed+i, seed*2+i)*Math.PI*2;
+    const d = rnd2(seed+i+7, seed)* (r-3);
+    const cx = px+16+Math.cos(a)*d, cy = py+12+Math.sin(a)*d*0.8;
+    ctx.fillRect(Math.round(cx), Math.round(cy), 2, 2);
+  }
+  ctx.fillStyle = C.canopyC;
+  for(let i=0;i<6;i++){
+    const a = rnd2(seed*3+i, seed+i)*Math.PI*2;
+    const cx = px+16+Math.cos(a)*(r-2), cy = py+13+Math.sin(a)*(r-2)*0.8;
+    ctx.fillRect(Math.round(cx), Math.round(cy), 2, 2);
+  }
+  // trunk
+  ctx.fillStyle = C.bark;
+  ctx.fillRect(px+14, py+18, 4, 12);
+  ctx.fillStyle = C.trunk;
+  ctx.fillRect(px+13, py+17, 2, 2);
+}
+function drawHouse(h, alpha){
+  const bp = houseBP(h);
+  const roof = ROOFS.find(r=>r.id===h.roof);
+  const px = h.x*TILE, py = h.y*TILE;
+  const bw = bp.w*TILE, bh = bp.h*TILE;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  const bodyH = bh-12, bodyY = py + bh - bodyH;
+  // body
+  ctx.fillStyle = C.wood;
+  ctx.fillRect(px+2, bodyY, bw-4, bodyH);
+  ctx.fillStyle = C.woodD;
+  for(let yy=bodyY+6; yy<bodyY+bodyH-2; yy+=7) ctx.fillRect(px+2, yy, bw-4, 1);
+  ctx.strokeStyle = C.woodD; ctx.lineWidth=2;
+  ctx.strokeRect(px+2, bodyY, bw-4, bodyH);
+  // roof (gable)
+  ctx.fillStyle = roof.side;
+  ctx.fillRect(px, bodyY-2, bw, 4);
+  const steps = Math.max(4, Math.round(bw/14));
+  for(let i=0;i<steps;i++){
+    const wdt = Math.max(4, Math.round(bw - (bw/steps)*i));
+    ctx.fillStyle = (i%2===0)? roof.top : roof.side;
+    ctx.fillRect(px + (bw-wdt)/2, bodyY-6-i*3, wdt, 3);
+  }
+  ctx.fillStyle = roof.dark;
+  ctx.fillRect(px, bodyY-6-steps*3, bw, 2);
+  // door
+  const doorW = 10, doorH = 16;
+  const doorX = px + bw/2 - doorW/2, doorY = bodyY+bodyH-doorH;
+  ctx.fillStyle = C.woodD;
+  ctx.fillRect(doorX, doorY, doorW, doorH);
+  ctx.fillStyle = C.wood;
+  ctx.fillRect(doorX+2, doorY+2, doorW-4, doorH-4);
+  ctx.fillStyle = C.gold; ctx.fillRect(doorX+doorW-5, doorY+doorH-7, 2, 2);
+  // windows
+  const winY = bodyY+10;
+  const nWin = bp.w>=3 ? 2 : 1;
+  for(let i=0;i<nWin;i++){
+    const wx = px + 8 + i*(bw-8-8)/(nWin);
+    ctx.fillStyle = S.phase===3 ? '#ffd76a' : '#cfe8ff';
+    ctx.fillRect(Math.round(wx), winY, 8, 8);
+    ctx.strokeStyle = C.woodD; ctx.lineWidth=1;
+    ctx.strokeRect(Math.round(wx)+0.5, winY+0.5, 8, 8);
+    ctx.fillStyle = C.woodD;
+    ctx.fillRect(Math.round(wx)+3, winY+1, 1, 7);
+    ctx.fillRect(Math.round(wx)+1, winY+3, 7, 1);
+  }
+  // construction overlay
+  if(!h.done){
+    ctx.globalAlpha = alpha*0.55;
+    ctx.fillStyle = C.scaffold;
+    ctx.fillRect(px-2, bodyY-8, bw+4, 4);
+    for(let xx=px; xx<px+bw; xx+=10) ctx.fillRect(xx, bodyY-8, 2, bodyH+8);
+    ctx.globalAlpha = alpha;
+    // progress bar
+    const pbarW = bw-4;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(px+2, bodyY-16, pbarW, 5);
+    ctx.fillStyle = h.progress>=1 ? C.gold : '#8fbf3f';
+    ctx.fillRect(px+2, bodyY-16, Math.floor(pbarW*h.progress), 5);
+  }
+  ctx.restore();
+}
+function drawPerson(c){
+  const px = Math.round(c.x*TILE), py = Math.round(c.y*TILE);
+  const frame = (Math.floor(c.anim)%2===0) ? SPR_PERSON.idle : SPR_PERSON.walk;
+  const colors = {s:C.skin, h:C.hair, t:c.shirt, p:C.pants};
+  drawSprite(frame, px-4, py-8, colors, 1);
+  // thought bubble
+  if(c.state==='wait' || c.state==='claim'){
+    const bp = BLUEPRINTS.find(b=>b.id===c.bp);
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(px, py-16, 7, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#333';
+    ctx.font = '9px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(bp.ico, px, py-14);
+  }
+}
+function drawMap(){
+  // ground
+  for(let y=0;y<ROWS;y++){
+    for(let x=0;x<COLS;x++){
+      const cell = tile(x,y);
+      const px=x*TILE, py=y*TILE;
+      if(cell.t==='water'){
+        ctx.fillStyle = ((x+y)%2) ? C.water : C.waterD;
+        ctx.fillRect(px,py,TILE,TILE);
+      } else if(cell.t==='path'){
+        ctx.fillStyle = ((x+y)%2) ? C.path : C.pathEdge;
+        ctx.fillRect(px,py,TILE,TILE);
+      } else {
+        ctx.fillStyle = ((x+y)%2) ? C.grassA : C.grassB;
+        ctx.fillRect(px,py,TILE,TILE);
+        if(rnd2(x,y) < 0.08 && (cell.t==='grass'||cell.t==='sapling')){
+          ctx.fillStyle = C.grassDark;
+          ctx.fillRect(px+6+(rnd2(x,y*3)*16|0), py+10+(rnd2(y,x)*16|0), 2, 2);
+        }
+      }
+    }
+  }
+  // pond sparkle
+  ctx.fillStyle = '#cfe8ff';
+  for(let i=0;i<3;i++) ctx.fillRect(10+i*8, 30+i*10, 2, 2);
+  // entities
+  for(let y=0;y<ROWS;y++){
+    for(let x=0;x<COLS;x++){
+      const cell = tile(x,y);
+      if(cell.t==='tree') drawTree(x,y, x*13+y*7);
+      else if(cell.t==='sapling'){ drawSprite(SPR_SAPLING, x*TILE+12, y*TILE+20, {g:'#4f9a3a', t:C.bark}, 1); }
+      else if(cell.t==='stump'){ drawSprite(SPR_STUMP, x*TILE+12, y*TILE+24, {t:C.bark}, 1); }
+    }
+  }
+  for(const h of S.houses){
+    const alpha = h.done ? 1 : 0.85;
+    drawHouse(h, alpha);
+  }
+  for(const c of S.customers) drawPerson(c);
+}
+function drawWeather(){
+  if(S.weather==='rain' || S.weather==='storm'){
+    ctx.fillStyle = 'rgba(80,110,160,0.18)';
+    ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle = 'rgba(200,220,255,0.5)';
+    ctx.lineWidth = 1;
+    const t = performance.now()/1000;
+    for(let i=0;i<40;i++){
+      const sx = (i*47 + t*120)%W;
+      const sy = (i*73 + t*260)%H;
+      ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(sx-3,sy+8); ctx.stroke();
+    }
+  }
+  if(S.weather==='storm'){
+    ctx.fillStyle = 'rgba(20,20,40,0.25)';
+    ctx.fillRect(0,0,W,H);
+    if(Math.random()<0.03){ ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.fillRect(0,0,W,H); }
+  }
+  if(S.phase===3){ // night
+    ctx.fillStyle = 'rgba(15,25,60,0.32)';
+    ctx.fillRect(0,0,W,H);
+  }
+}
+function drawHover(){
+  if(!hover) return;
+  const {tx,ty} = hover;
+  if(!inBounds(tx,ty)) return;
+  const cell = tile(tx,ty);
+  if(selBP){
+    const bp = BLUEPRINTS.find(b=>b.id===selBP);
+    let ok = true;
+    for(let oy=0;oy<bp.h && ok;oy++) for(let ox=0;ox<bp.w;ox++){
+      if(!isBuildable(tx+ox,ty+oy) || tile(tx+ox,ty+oy).occupied){ ok=false; break; }
+    }
+    ctx.fillStyle = ok ? 'rgba(143,191,63,0.35)' : 'rgba(229,72,77,0.4)';
+    ctx.fillRect(tx*TILE, ty*TILE, bp.w*TILE, bp.h*TILE);
+    ctx.strokeStyle = ok ? '#8fbf3f' : '#e5484d'; ctx.lineWidth=2;
+    ctx.strokeRect(tx*TILE+1, ty*TILE+1, bp.w*TILE-2, bp.h*TILE-2);
+  } else if(tool==='axe' && cell.t==='tree'){
+    ctx.strokeStyle='rgba(255,255,255,0.6)'; ctx.lineWidth=2;
+    ctx.strokeRect(tx*TILE+1, ty*TILE+1, TILE-2, TILE-2);
+  } else if(tool==='plant' && isGrass(tx,ty)){
+    ctx.strokeStyle='rgba(143,191,63,0.9)'; ctx.lineWidth=2;
+    ctx.strokeRect(tx*TILE+1, ty*TILE+1, TILE-2, TILE-2);
+  } else if(tool==='hammer' && cell.t==='house'){
+    ctx.strokeStyle='rgba(242,201,76,0.9)'; ctx.lineWidth=2;
+    ctx.strokeRect(tx*TILE+1, ty*TILE+1, TILE-2, TILE-2);
+  }
+}
+function drawFx(){
+  for(const p of particles){
+    ctx.globalAlpha = Math.max(0, p.life/p.maxLife);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x, p.y, p.size, p.size);
+    ctx.globalAlpha = 1;
+  }
+  ctx.font = 'bold 11px monospace';
+  ctx.textAlign = 'center';
+  for(const f of floaties){
+    ctx.globalAlpha = Math.max(0, f.life/0.9);
+    ctx.strokeStyle = '#000'; ctx.lineWidth=3;
+    ctx.strokeText(f.text, f.x, f.y);
+    ctx.fillStyle = f.color;
+    ctx.fillText(f.text, f.x, f.y);
+    ctx.globalAlpha = 1;
+  }
+}
+function render(){
+  ctx.clearRect(0,0,W,H);
+  ctx.save();
+  if(shake>0) ctx.translate((Math.random()-0.5)*4, (Math.random()-0.5)*4);
+  drawMap();
+  drawHover();
+  drawWeather();
+  drawFx();
+  ctx.restore();
+}
+
+/* ---------- HUD / UI ---------- */
+function $(id){ return document.getElementById(id); }
+function addFloat(x,y,text,color){ floaties.push({x,y,text,color,life:0.9,maxLife:0.9}); }
+function pushMsg(text, kind, quiet){
+  msgQueue.push({text,kind:kind||''});
+  if(msgQueue.length>8) msgQueue.shift();
+  if(!quiet) renderMsgLog();
+}
+function renderMsgLog(){
+  const el = $('msgLog');
+  el.innerHTML = msgQueue.slice(-6).map(m=>'<div class="msg '+(m.kind||'')+'">'+m.text+'</div>').join('');
+}
+function updateHUD(){
+  if(!S) return;
+  $('hud-day').textContent = 'Day '+S.day;
+  $('hud-weather-ico').textContent = WEATHERS[S.weather].ico;
+  $('hud-weather').textContent = WEATHERS[S.weather].name;
+  $('hud-forecast').textContent = 'Next: '+WEATHERS[S.nextWeather].ico+' '+WEATHERS[S.nextWeather].name;
+  $('hud-wood').textContent = S.wood;
+  $('hud-coins').textContent = S.coins;
+  $('hud-rep').textContent = S.rep;
+  const nxt = repToNext();
+  $('hud-rep-next').textContent = nxt>0 ? ('/'+nxt) : '';
+  $('hud-level').textContent = 'Lv'+playerLevel;
+  $('phaseIco').textContent = PHASES[S.phase].ico;
+  $('phaseLbl').textContent = PHASES[S.phase].name;
+  const e = Math.round(envPercent());
+  const fill = $('envFill');
+  fill.style.width = e+'%';
+  fill.className = e<30 ? 'bad' : e<70 ? 'warn' : '';
+}
+function refreshBuildMenu(){
+  const grid = $('bpGrid');
+  grid.innerHTML = '';
+  for(const bp of BLUEPRINTS){
+    const unlocked = bp.unlockLv<=playerLevel;
+    const b = document.createElement('button');
+    b.className = 'bp-btn'+(bp.id===selBP?' sel':'')+(unlocked?'':' locked');
+    b.innerHTML = '<span class="bp-ico">'+bp.ico+'</span><span class="bp-name">'+bp.name+'</span>'+
+      '<span class="bp-meta">🪵'+bp.wood+' · '+bp.days+'d · +'+bp.rep+'⭐</span>'+
+      (unlocked?'':'<span class="bp-lock">🔒 Lv'+bp.unlockLv+'</span>');
+    if(unlocked){
+      b.addEventListener('click', ()=>{ selBP = (selBP===bp.id)? null : bp.id; refreshBuildMenu(); updateHint(); });
+    }
+    grid.appendChild(b);
+  }
+  const vr = $('variantRow');
+  vr.innerHTML = '<span style="opacity:.8">Roof:</span>';
+  ROOFS.forEach((r,i)=>{
+    const chip = document.createElement('span');
+    chip.className = 'vchip'+(i===roofIdx?' sel':'');
+    chip.style.background = r.side;
+    chip.title = r.name;
+    chip.addEventListener('click', ()=>{ roofIdx=i; refreshBuildMenu(); });
+    vr.appendChild(chip);
+  });
+}
+function refreshCustPanel(){
+  const el = $('custList');
+  if(!S.customers.length){ el.innerHTML = '<div class="msg" style="border-color:transparent;opacity:.6">No customers right now.</div>'; return; }
+  el.innerHTML = S.customers.map(c=>{
+    const bp = BLUEPRINTS.find(b=>b.id===c.bp);
+    const wait = c.state==='wait' ? '<span class="c-wait">⏳ '+c.daysLeft+'d</span>' : (c.state==='enter'?'<span class="c-wait">on the way…</span>':'<span class="c-wait">moving in…</span>');
+    return '<div class="cust'+(c.state==='leave'?' leaving':'')+'"><span class="c-ico">'+bp.ico+'</span><span><span class="c-want">'+bp.name+'</span> '+wait+'</span></div>';
+  }).join('');
+}
+function updateHint(){
+  if(selBP){
+    const bp = BLUEPRINTS.find(b=>b.id===selBP);
+    $('hintBar').innerHTML = '🏠 Building: <b>'+bp.name+'</b> ('+bp.wood+' 🪵) — click grass to place, <b>Esc</b> to cancel.';
+  } else if(tool==='axe'){
+    $('hintBar').innerHTML = '🪓 <b>Chop trees</b> for wood · 🌱 plant saplings to keep the forest healthy · pick a house from <b>BUILD</b> and click the grass to place it · customers move in when it\'s done!';
+  } else if(tool==='plant'){
+    $('hintBar').innerHTML = '🌱 Click grass to <b>plant a free sapling</b>. Rain makes them grow twice as fast!';
+  } else if(tool==='hammer'){
+    $('hintBar').innerHTML = '🔨 Click a house under construction: <b>+20% progress for 5 🪵</b> (once per house per day).';
+  }
+}
+function setTool(t){
+  tool = t; selBP = null;
+  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.toggle('active', b.dataset.tool===t));
+  refreshBuildMenu(); updateHint();
+}
+function showScreen(name){
+  document.querySelectorAll('.overlay').forEach(o=>o.classList.add('hidden'));
+  const el = $('ov-'+name);
+  if(el) el.classList.remove('hidden');
+}
+function startGame(){
+  newGame();
+  showScreen('none');
+  if(!localStorage.getItem('instabuilt-tut-seen')){
+    startTutorial();
+  }
+  updateHUD();
+}
+function startTutorial(){
+  const steps = [
+    {t:'Welcome, builder!', b:'<p>You own a <b>forest plot</b> — your land, your village. But first: <b>wood</b>.</p>'},
+    {t:'1 · Chop trees 🪓', b:'<p>Select the <b>Axe</b> tool (left panel) and click a <b>tree</b> on the map. Each mature tree gives 5–7 wood.</p><p>Chop wisely — a bare forest means no customers!</p>'},
+    {t:'2 · Plant saplings 🌱', b:'<p>Pick the <b>Plant</b> tool and click empty grass to plant a <b>free sapling</b>. It grows into a tree in ~8 days, faster when it rains.</p>'},
+    {t:'3 · Build a house 🏡', b:'<p>In the <b>BUILD</b> panel pick a blueprint (start with the <b>Tiny Cabin</b>), choose a roof color, then click grass to place it. Builders work day and night — weather matters!</p>'},
+    {t:'4 · Serve customers 🧑', b:'<p>Customers arrive wanting a specific house. Finish it before their timer runs out to earn <b>coins</b> and <b>reputation</b>. Reach 1000 rep to make the village thrive!</p>'},
+  ];
+  let i = 0;
+  const body = $('tutBody'), title = $('tutTitle'), next = $('tutNext'), skip = $('tutSkip');
+  function show(){
+    title.textContent = steps[i].t;
+    body.innerHTML = steps[i].b;
+    next.textContent = i<steps.length-1 ? 'Next ▶' : 'Let\'s build! 🪓';
+    skip.style.display = i===0 ? 'block' : 'none';
+  }
+  next.onclick = ()=>{
+    i++;
+    if(i>=steps.length){ localStorage.setItem('instabuilt-tut-seen','1'); showScreen('none'); }
+    else show();
+  };
+  skip.onclick = ()=>{ localStorage.setItem('instabuilt-tut-seen','1'); showScreen('none'); };
+  show();
+  showScreen('tut');
+}
+function showWin(){
+  const winEl = document.getElementById('ov-win');
+  if(winEl && !winEl.classList.contains('hidden')) return; // already showing
+  winShown = true;
+  const h = S.houses.filter(x=>x.done).length;
+  $('winStats').innerHTML =
+    '<div class="s">🏠 <b>'+h+'</b> houses built</div>'+
+    '<div class="s">📅 <b>'+S.day+'</b> days</div>'+
+    '<div class="s">⭐ <b>'+S.rep+'</b> reputation</div>'+
+    '<div class="s">🌲 <b>'+Math.round(envPercent())+'%</b> forest</div>';
+  showScreen('win');
+}
+
+/* ---------- audio (tiny WebAudio blips, no assets) ---------- */
+let actx = null;
+function audioInit(){
+  try{
+    if(typeof AudioContext!=='undefined') actx = new AudioContext();
+    else if(typeof webkitAudioContext!=='undefined') actx = new webkitAudioContext();
+  }catch(e){ actx = null; }
+}
+function sfx(kind){
+  if(muted || !actx) return;
+  try{
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.connect(g); g.connect(actx.destination);
+    const t0 = actx.currentTime;
+    let f=440, dur=0.08, type='square';
+    if(kind==='chop'){ f=160; dur=0.09; }
+    else if(kind==='plant'){ f=520; dur=0.1; }
+    else if(kind==='place'){ f=220; dur=0.12; }
+    else if(kind==='hammer'){ f=300; dur=0.08; }
+    else if(kind==='coin'){ f=880; dur=0.12; }
+    else if(kind==='done'){ f=660; dur=0.18; }
+    else if(kind==='customer'){ f=440; dur=0.15; }
+    else if(kind==='deny'){ f=110; dur=0.15; type='sawtooth'; }
+    else if(kind==='storm'){ f=70; dur=0.5; type='sawtooth'; }
+    o.type=type;
+    g.gain.setValueAtTime(0.12, t0);
+    g.gain.exponentialRampToValueAtTime(0.001, t0+dur);
+    o.frequency.setValueAtTime(f, t0);
+    o.start(t0); o.stop(t0+dur);
+  }catch(e){}
+}
+
+/* ---------- input ---------- */
+function canvasPos(e){
+  const r = canvas.getBoundingClientRect ? canvas.getBoundingClientRect() : {left:0,top:0,width:W,height:H};
+  const sx = (e.clientX!==undefined) ? (e.clientX - r.left) * (W/r.width) : e.offsetX;
+  const sy = (e.clientY!==undefined) ? (e.clientY - r.top) * (H/r.height) : e.offsetY;
+  return {tx:Math.floor(sx/TILE), ty:Math.floor(sy/TILE)};
+}
+canvas.addEventListener('click', (e)=>{
+  if(!S) return;
+  const {tx,ty} = canvasPos(e);
+  clickTileAt(tx,ty);
+  updateHUD();
+});
+canvas.addEventListener('mousemove', (e)=>{
+  if(!S) return;
+  const {tx,ty} = canvasPos(e);
+  hover = {tx,ty};
+});
+canvas.addEventListener('mouseleave', ()=>{ hover=null; });
+
+document.querySelectorAll('.tool-btn').forEach(b=>{
+  b.addEventListener('click', ()=>setTool(b.dataset.tool));
+});
+$('btn-start').addEventListener('click', ()=>{ audioInit(); startGame(); });
+$('btn-continue').addEventListener('click', ()=>{ audioInit(); if(loadSave()){ showScreen('none'); refreshBuildMenu(); refreshCustPanel(); renderMsgLog(); updateHUD(); if(winShown) showWin(); } else { startGame(); } });
+$('btn-resume').addEventListener('click', ()=>{ paused=false; showScreen('none'); });
+$('btn-pause').addEventListener('click', ()=>{ if(!S||winShown) return; paused=true; showScreen('pause'); });
+$('btn-menu').addEventListener('click', ()=>{ paused=false; showScreen('menu'); });
+$('btn-restart').addEventListener('click', ()=>{ paused=false; if(confirm('Start a brand-new village? Your progress will be lost.')){ try{localStorage.removeItem(SAVE_KEY);}catch(e){} startGame(); } });
+$('btn-again').addEventListener('click', ()=>{ try{localStorage.removeItem(SAVE_KEY);}catch(e){} startGame(); });
+$('btn-keep').addEventListener('click', ()=>{ showScreen('none'); });
+$('btn-help').addEventListener('click', ()=>{ if(!S) return; showScreen('help'); });
+$('btn-close-help').addEventListener('click', ()=>{ showScreen('none'); });
+$('btn-mute').addEventListener('click', ()=>{ muted=!muted; $('btn-mute').textContent = muted?'🔇':'🔊'; });
+window.addEventListener('keydown', (e)=>{
+  if(e.key==='Escape'){ selBP=null; refreshBuildMenu(); updateHint(); }
+  if(e.key==='1') setTool('axe');
+  if(e.key==='2') setTool('plant');
+  if(e.key==='3') setTool('hammer');
+  if(e.key===' '){ e.preventDefault(); if(S && !winShown){ paused=!paused; showScreen(paused?'pause':'none'); } }
+});
+window.addEventListener('beforeunload', ()=>{ if(S) saveGame(); });
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden && S && !paused && !winShown){ paused=true; showScreen('pause'); } });
+
+/* ---------- main loop ---------- */
+function loop(t){
+  if(!lastT) lastT = t;
+  let dt = (t - lastT)/1000;
+  lastT = t;
+  if(dt > 0.1) dt = 0.1;
+  if(S){
+    update(dt);
+    render();
+    if(!paused) updateHUD();
+  }
+  requestAnimationFrame(loop);
+}
+
+/* ---------- boot ---------- */
+$('btn-continue').style.display = hasSave() ? '' : 'none';
+renderMsgLog();
+refreshBuildMenu();
+updateHint();
+requestAnimationFrame(loop);
+
+/* ---------- test API (used by headless harness) ---------- */
+window.__game = {
+  S: ()=>S,
+  newGame, startGame, advanceDay, clickTileAt, setTool, selectBP: (id)=>{ selBP=id; },
+  get tiles(){ return S ? S.grid : []; },
+  get state(){ return S; },
+  setState: (d)=>{ S = d; },
+  toast: (m,k)=>pushMsg(m,k),
+  currentTool: ()=>tool,
+};
+</script>
+</body>
+</html>
