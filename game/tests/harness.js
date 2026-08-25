@@ -99,6 +99,13 @@ check('map generated ' + (COLS * ROWS) + ' tiles', st.grid.length === COLS * ROW
 const treeCount = st.grid.filter(c => c.t === 'tree').length;
 check('forest has trees (' + treeCount + ')', treeCount > 40);
 check('forest has varied tree types', st.grid.some(c => c.t === 'treePine') && st.grid.some(c => c.t === 'treeBig') && st.grid.some(c => c.t === 'treeRed'));
+const treeTypes = ['tree','treeBig','treePine','treeRed','treeDead'];
+const waterCount = st.grid.filter(c => c.t === 'water').length;
+const bridgeCount = st.grid.filter(c => c.t === 'path' && c.detail === 'bridge').length;
+check('winding river present (' + waterCount + ' water tiles)', waterCount > 25);
+check('log bridges cross the river (' + bridgeCount + ' bridges)', bridgeCount >= 2);
+check('dead trees add variety', st.grid.some(c => c.t === 'treeDead'));
+check('tree sizes vary', st.grid.some(c => treeTypes.includes(c.t) && c.sz === 1) && st.grid.some(c => treeTypes.includes(c.t) && c.sz === 3));
 const sp = st.spawn;
 check('spawn clearing is open grass', [0, 1, -1].every(dy => [0, 1, -1].every(dx => st.grid[(sp.y + dy) * COLS + (sp.x + dx)].t === 'grass')));
 check('campfire at spawn', st.grid[sp.y * COLS + sp.x].detail === 'campfire');

@@ -415,76 +415,148 @@ function newGame(){
 
 function genMap(){
   S.grid = [];
+  // every tile starts as grass; trees get a size 1..3 for visual variety
   for(let y=0;y<ROWS;y++){
     for(let x=0;x<COLS;x++){
-      let t='grass';
-      // pond in top-left
-      const dx=x-2.5, dy=y-2.2;
-      if(dx*dx+dy*dy < 4.2) t='water';
-      // dirt path along bottom row
-      if(y===ROWS-1) t='path';
-      // clustered forest using value noise — dense, like real woodland
-      const n = Math.sin(x*0.5)*0.5 + Math.sin(y*0.6+1.7)*0.5;
-      const jitter = (rnd2(x,y)-0.5)*0.6;
-      const border = (y<2 || y>=ROWS-2 || x<2 || x>=COLS-2); // thick tree ring around the map
-      if(t==='grass' && (border || n+jitter > -0.08)){
-        // different kinds & sizes of trees
-        const r = rnd2(x*3+1, y*7+2);
-        if(r < 0.52) t='tree';        // regular
-        else if(r < 0.70) t='treePine'; // pine
-        else if(r < 0.86) t='treeBig';  // big old oak
-        else t='treeRed';               // red leaves
-      }
-      let detail = null;
-      if(t==='grass'){
-        const d = rnd2(x*11+5, y*13+8);
-        if(d < 0.07) detail='bush';
-        else if(d < 0.12) detail='rock';
-        else if(d < 0.15) detail='mush';
-        else if(d < 0.20) detail='tuft';
-        else if(d < 0.26) detail='flower';
-        else if(d < 0.30) detail='log';
-      }
-      S.grid.push({t, grow:0, regrow:0, occupied:false, detail});
+      const sz = 1 + (rnd2(x*5+2, y*3+1) < 0.5 ? 1 : 0) + (rnd2(x*7+9, y*5+4) < 0.3 ? 1 : 0);
+      S.grid.push({t:'grass', grow:0, regrow:0, occupied:false, detail:null, sz});
     }
   }
-  // guaranteed clearing in the middle: the player's building plot
-  const cx = Math.floor(COLS/2), cy = Math.floor(ROWS/2);
-  for(let y=cy-2; y<=cy+2; y++){
-    for(let x=cx-2; x<=cx+2; x++){
+  const GLADES = [
+    {x:18,y:10,w:5,h:5},  // main building plot (spawn)
+    {x:5,y:13,w:4,h:3},   // west glade
+    {x:30,y:4,w:4,h:3},   // north-east glade
+    {x:31,y:20,w:4,h:3},  // south-east glade
+    {x:5,y:18,w:3,h:3}    // south-west glade
+  ];
+  const inGlade = (x,y)=> GLADES.some(g=> x>=g.x && x<g.x+g.w && y>=g.y && y<g.y+g.h);
+  // --- 1. pond in the top-left corner forest ---
+  for(let y=0;y<ROWS;y++) for(let x=0;x<COLS;x++){
+    const dx=x-2.5, dy=y-2.2;
+    if(dx*dx+dy*dy < 4.2){ const c=tile(x,y); if(c) c.t='water'; }
+  }
+  // --- 2. a winding river, flowing from the top edge to the bottom edge ---
+  for(let y=0;y<ROWS;y++){
+    const xc = 19 + Math.sin(y*0.38+1.2)*6 + Math.sin(y*0.13+2.7)*4 + (rnd2(7,y)-0.5)*3;
+    const hw = rnd2(3,y) < 0.35 ? 1.5 : 1.0;
+    for(let x=Math.max(0,Math.round(xc-hw)); x<=Math.min(COLS-1,Math.round(xc+hw)); x++){
+      const c=tile(x,y); if(c) c.t='water';
+    }
+  }
+  // --- 3. dense forests; each corner has its own character ---
+  const pick = (r, mix)=>{ let acc=0; for(const m of mix){ acc+=m[1]; if(r<acc) return m[0]; } return mix[mix.length-1][0]; };
+  const MIX = {
+    tl:[['tree',0.50],['treePine',0.15],['treeBig',0.17],['treeRed',0.13],['treeDead',0.05]],
+    tr:[['tree',0.34],['treePine',0.46],['treeBig',0.09],['treeRed',0.06],['treeDead',0.05]],
+    bl:[['tree',0.42],['treePine',0.10],['treeBig',0.11],['treeRed',0.32],['treeDead',0.05]],
+    br:[['tree',0.42],['treePine',0.08],['treeBig',0.40],['treeRed',0.05],['treeDead',0.05]],
+    mid:[['tree',0.44],['treePine',0.24],['treeBig',0.18],['treeRed',0.10],['treeDead',0.04]]
+  };
+  for(let y=0;y<ROWS;y++){
+    for(let x=0;x<COLS;x++){
       const c = tile(x,y);
-      if(c){ c.t='grass'; c.occupied=false; c.detail = (x===cx && y===cy) ? 'campfire' : null; }
+      if(!c || c.t!=='grass') continue;
+      const r = rnd2(x,y);
+      const inTL = x<=9 && y<=7, inTR = x>=30 && y<=7, inBL = x<=9 && y>=16, inBR = x>=30 && y>=16;
+      const border = (y<2 || y>=ROWS-2 || x<2 || x>=COLS-2); // thick tree ring around the map
+      if(inTL && r<0.88) c.t = pick(rnd2(x*3+1,y*7+2), MIX.tl);
+      else if(inTR && r<0.88) c.t = pick(rnd2(x*3+1,y*7+2), MIX.tr);
+      else if(inBL && r<0.86) c.t = pick(rnd2(x*3+1,y*7+2), MIX.bl);
+      else if(inBR && r<0.86) c.t = pick(rnd2(x*3+1,y*7+2), MIX.br);
+      else {
+        const n = Math.sin(x*0.5)*0.5 + Math.sin(y*0.6+1.7)*0.5;
+        const jitter = (rnd2(x,y)-0.5)*0.6;
+        if(border || n+jitter > -0.15) c.t = pick(rnd2(x*3+1,y*7+2), MIX.mid);
+      }
     }
   }
-  // frame the plot with a wooden fence, a wood pile, and a dirt trail to the path
-  for(let y=cy-3; y<=cy+3; y++){
-    for(let x=cx-3; x<=cx+3; x++){
-      if(Math.abs(x-cx)===3 || Math.abs(y-cy)===3){
-        const c = tile(x,y);
-        if(c && c.t==='grass') c.detail='fence';
+  // --- 4. open clearings where wooden houses can be built ---
+  for(const g of GLADES){
+    for(let y=g.y;y<g.y+g.h;y++) for(let x=g.x;x<g.x+g.w;x++){
+      const c = tile(x,y);
+      if(c && c.t!=='water'){ c.t='grass'; c.occupied=false; c.detail=null; c.regrow=0; }
+    }
+  }
+  // --- 5. dirt paths connecting the clearings; where a road meets the river it becomes a log bridge ---
+  const cx=20, cy=12;
+  const roads = [
+    [{x:cx,y:cy+1},{x:cx,y:21},{x:cx,y:22}],   // main trail south, plank bridge to the bottom road
+    [{x:cx+2,y:cy},{x:25,y:12},{x:27,y:13},{x:30,y:17},{x:31,y:18},{x:32,y:18},{x:33,y:19},{x:33,y:20},{x:33,y:21}], // east road (crosses the river bend)
+    [{x:24,y:12},{x:26,y:9},{x:28,y:6},{x:30,y:5},{x:31,y:5}], // north-east road (bridge at the bend)
+    [{x:cx-2,y:cy},{x:15,y:12},{x:12,y:13},{x:9,y:13},{x:7,y:14},{x:6,y:14}], // west road
+    [{x:cx,y:16},{x:17,y:17},{x:13,y:18},{x:9,y:19},{x:7,y:19},{x:6,y:19},{x:6,y:22}], // south-west road
+    [{x:0,y:23},{x:14,y:23},{x:16,y:23},{x:17,y:23},{x:22,y:23},{x:39,y:23}] // bottom road (bridge at the river mouth)
+  ];
+  const carve = (a,b)=>{
+    const steps = Math.max(Math.abs(b.x-a.x), Math.abs(b.y-a.y)) || 1;
+    for(let i=0;i<=steps;i++){
+      const t = i/steps;
+      const px = Math.round(a.x+(b.x-a.x)*t), py = Math.round(a.y+(b.y-a.y)*t);
+      const inPlot = px>=17 && px<=23 && py>=9 && py<=15; // the fenced base plot (incl. ring)
+      // always pave the straight tile, so a road is a clean connected line
+      const c = tile(px,py);
+      if(c && !(Math.abs(px-cx)<=1 && Math.abs(py-cy)<=1)){
+        if(c.t==='water'){ c.t='path'; c.detail='bridge'; c.occupied=false; }
+        else if(c.t==='grass'||isMatureTree(c)||c.t==='sapling'||c.t==='stump'){ c.t='path'; c.detail=null; c.occupied=false; c.regrow=0; }
       }
+      // weave: occasionally add a neighbouring tile for an organic, worn-in feel
+      if(c && c.t!=='water' && !inPlot){
+        const jx = Math.round((rnd2(px*13+5,py*17+9)-0.5)*2);
+        const jy = Math.round((rnd2(px*19+3,py*11+7)-0.5)*2);
+        const jc = tile(px+jx,py+jy);
+        if(jc && jc.t!=='water' && jc.t!=='path' && !(Math.abs(px+jx-cx)<=1 && Math.abs(py+jy-cy)<=1)){
+          if(jc.t==='grass'||isMatureTree(jc)||jc.t==='sapling'||jc.t==='stump'){ jc.t='path'; jc.detail=null; jc.occupied=false; jc.regrow=0; }
+        }
+      }
+    }
+  };
+  for(const road of roads) for(let i=0;i<road.length-1;i++) carve(road[i], road[i+1]);
+  // --- 6. frame the main plot: fence ring, wood pile, campfire ---
+  for(let y=cy-3;y<=cy+3;y++) for(let x=cx-3;x<=cx+3;x++){
+    if(Math.abs(x-cx)===3 || Math.abs(y-cy)===3){
+      const c = tile(x,y);
+      if(c && c.t==='grass') c.detail='fence';
     }
   }
   const wp = tile(cx+2, cy+2);
   if(wp && wp.t==='grass') wp.detail='woodpile';
-  for(let y=cy+1; y<ROWS-1; y++){
-    const c = tile(cx, y);
-    if(c && c.t==='grass' && c.detail!=='campfire') c.detail='trail';
-  }
-  // a second small glade, so the player has room to expand
-  for(let y=13;y<=15;y++) for(let x=5;x<=8;x++){
-    const c = tile(x,y);
-    if(c && c.t!=='water' && c.t!=='path'){ c.t='grass'; c.occupied=false; c.detail=null; }
+  const camp = tile(cx, cy);
+  if(camp && camp.t==='grass') camp.detail='campfire';
+  // --- 7. forest-floor decoration: logs & mushrooms in the deep woods, flowers & berries in the glades ---
+  for(let y=0;y<ROWS;y++){
+    for(let x=0;x<COLS;x++){
+      const c = tile(x,y);
+      if(!c || c.t!=='grass' || c.detail || c.occupied || inGlade(x,y)) continue;
+      if(Math.abs(x-cx)<=1 && Math.abs(y-cy)<=1) continue; // keep the spawn spot clean
+      const d = rnd2(x*11+5, y*13+8);
+      const deep = (x<=9&&y<=7)||(x>=30&&y<=7)||(x<=9&&y>=16)||(x>=30&&y>=16);
+      if(deep){
+        if(d<0.10) c.detail='log';
+        else if(d<0.18) c.detail='mush';
+        else if(d<0.24) c.detail='tuft';
+        else if(d<0.30) c.detail='fern';
+        else if(d<0.34) c.detail='rock';
+        else if(d<0.37) c.detail='berries';
+      } else {
+        if(d<0.06) c.detail='flower';
+        else if(d<0.11) c.detail='tuft';
+        else if(d<0.15) c.detail='bush';
+        else if(d<0.19) c.detail='fern';
+        else if(d<0.22) c.detail='rock';
+        else if(d<0.24) c.detail='berries';
+      }
+    }
   }
   S.spawn = {x:cx, y:cy};
 }
 function isMatureTree(cell){
-  return !!cell && (cell.t==='tree'||cell.t==='treeBig'||cell.t==='treePine'||cell.t==='treeRed');
+  return !!cell && (cell.t==='tree'||cell.t==='treeBig'||cell.t==='treePine'||cell.t==='treeRed'||cell.t==='treeDead');
 }
 function treeYield(cell, x, y){
   const r = Math.floor(rnd2(x*3+1, y*7+2)*3);
   if(cell.t==='treeBig') return 8 + r;   // 8-10
   if(cell.t==='treePine') return 4 + r%2; // 4-5
+  if(cell.t==='treeDead') return 4 + r%2; // 4-5 dry wood
   return 5 + r;                           // 5-7
 }
 function countForest(){
@@ -527,7 +599,7 @@ function loadSave(){
     return true;
   }catch(e){ return false; }
 }
-function countForestFromGrid(g){ let c=0; for(const cell of g){ if(cell.t==='tree'||cell.t==='treeBig'||cell.t==='treePine'||cell.t==='treeRed')c++; else if(cell.t==='sapling')c+=0.5; } return c; }
+function countForestFromGrid(g){ let c=0; for(const cell of g){ if(cell.t==='tree'||cell.t==='treeBig'||cell.t==='treePine'||cell.t==='treeRed'||cell.t==='treeDead')c++; else if(cell.t==='sapling')c+=0.5; } return c; }
 function hasSave(){ try{ return !!localStorage.getItem(SAVE_KEY); }catch(e){ return false; } }
 
 /* ---------- economy ---------- */
@@ -989,8 +1061,9 @@ function drawSprite(rows, px, py, colors, scale, flip){
     }
   }
 }
-function drawCanopy(px, py, cx, cy, seed, ox, tones){
-  const r = 13 + Math.floor(rnd2(seed,seed+1)*4);
+function drawCanopy(px, py, cx, cy, seed, ox, tones, sc){
+  sc = sc || 1;
+  const r = Math.round((13 + Math.floor(rnd2(seed,seed+1)*4)) * sc);
   ctx.fillStyle = tones[1];
   ctx.beginPath(); ctx.arc(px+cx+ox, py+cy, r, 0, Math.PI*2); ctx.fill();
   ctx.strokeStyle = 'rgba(10,20,8,0.55)'; ctx.lineWidth = 1.5;
@@ -1009,45 +1082,64 @@ function drawCanopy(px, py, cx, cy, seed, ox, tones){
 function drawTree(x,y,cell){
   const px = x*TILE, py = y*TILE;
   const seed = x*13+y*7;
+  const sz = cell.sz || 2;
+  const f = sz===1 ? 0.82 : sz===3 ? 1.25 : 1; // size 1..3 -> smaller..grander trees
   const shaking = S.sawing && S.sawing.x===x && S.sawing.y===y;
   const ox = shaking ? Math.sin(performance.now()/45)*3 : 0;
   const sway = Math.sin(performance.now()/1400 + seed)*0.8; // gentle breeze
   // big soft ground shadow
   ctx.fillStyle = 'rgba(15,30,12,0.28)';
-  ctx.beginPath(); ctx.ellipse(px+16+ox+sway, py+26, 12, 5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(px+16+ox+sway, py+26, cell.t==='treeDead' ? 8 : 12*f, 5, 0, 0, Math.PI*2); ctx.fill();
+  if(cell.t==='treeDead'){
+    // gnarled dead tree: bare trunk with stub branches
+    ctx.fillStyle = '#7a6a58';
+    ctx.fillRect(px+14+ox, py+9, 5, 21);
+    ctx.fillStyle = '#8f7f6a';
+    ctx.fillRect(px+15+ox, py+9, 1, 21);
+    ctx.fillStyle = '#665848';
+    ctx.fillRect(px+11+ox, py+13, 3, 2); ctx.fillRect(px+12+ox, py+12, 2, 3);
+    ctx.fillRect(px+18+ox, py+10, 3, 2); ctx.fillRect(px+19+ox, py+10, 2, 3);
+    ctx.fillRect(px+11+ox, py+19, 3, 2); ctx.fillRect(px+12+ox, py+18, 2, 3);
+    ctx.fillRect(px+18+ox, py+16, 3, 2); ctx.fillRect(px+19+ox, py+16, 2, 3);
+    ctx.fillRect(px+13+ox, py+23, 3, 2);
+    ctx.fillStyle = '#8f7f6a';
+    ctx.fillRect(px+13+ox, py+23, 1, 1);
+    return;
+  }
   if(cell.t==='treePine'){
-    // tall layered pine
+    // tall layered pine, scaled by size
     const tones = ['#1e3f16','#2a5a20','#3f7d2f','#4f9a3a','#63ab3f'];
-    let w = 28;
+    let w = Math.round(26*f), ly = Math.round(4.5*f);
     for(let i=0;i<6;i++){
       ctx.fillStyle = tones[i%5];
-      ctx.fillRect(px+16-w/2+ox+sway, py+20-i*5, w, 5);
-      w -= 3;
+      ctx.fillRect(px+16-w/2+ox+sway, py+20-i*ly, w, ly);
+      w -= Math.round(2.5*f);
     }
     ctx.fillStyle = tones[4];
     ctx.fillRect(px+15+ox+sway, py+3, 3, 4);
     ctx.fillRect(px+18+ox+sway, py+8, 3, 4);
     ctx.fillStyle = '#8a5f3f';
-    ctx.fillRect(px+14+ox, py+22, 5, 9);
+    ctx.fillRect(px+14+ox, py+22, Math.max(3,Math.round(5*f)), Math.round(9*f));
     return;
   }
   if(cell.t==='treeBig'){
     // grand old oak: two layered canopies
     const tones = ['#1e3f16','#2c5a22','#35682b','#4f9a3a','#63ab3f'];
-    drawCanopy(px, py, 16, 13, seed, ox+sway, tones);
-    drawCanopy(px, py, 10, 8, seed+31, ox+sway, tones);
+    drawCanopy(px, py, 16, Math.round(13*f), seed, ox+sway, tones, f);
+    drawCanopy(px, py, 10, Math.round(8*f), seed+31, ox+sway, tones, f*0.85);
+    const tw = Math.max(4, Math.round(8*f)), th = Math.round(12*f);
     ctx.fillStyle = '#7a5230';
-    ctx.fillRect(px+12+ox, py+20, 8, 12);
+    ctx.fillRect(px+16-tw/2+ox, py+20, tw, th);
     ctx.fillStyle = '#5f3d20';
-    ctx.fillRect(px+13+ox, py+19, 2, 2);
-    ctx.fillRect(px+17+ox, py+19, 2, 2);
+    ctx.fillRect(px+15+ox, py+19, 2, 2);
+    ctx.fillRect(px+19+ox, py+19, 2, 2);
     return;
   }
   const red = cell.t==='treeRed';
   const tones = red ? ['#5c1712','#7d2823','#a8322b','#c8554a','#e07a6a'] : ['#1e3f16','#2c5a22','#35682b','#4f9a3a','#6cb048'];
-  drawCanopy(px, py, 16, 11, seed, ox+sway, tones);
+  drawCanopy(px, py, 16, Math.round(11*f), seed, ox+sway, tones, f);
   ctx.fillStyle = '#6b4a2b';
-  ctx.fillRect(px+14+ox, py+20, 4, 11);
+  ctx.fillRect(px+16-Math.max(2,Math.round(2*f))+ox, py+20, Math.max(3,Math.round(4*f)), Math.round(11*f));
 }
 function drawDetail(x,y,cell){
   const px = x*TILE, py = y*TILE;
@@ -1169,6 +1261,45 @@ function drawDetail(x,y,cell){
     ctx.fillRect(px+18, py+16, 2, 2);
     ctx.fillStyle = '#8a6a44';
     ctx.fillRect(px+14, py+21, 2, 2);
+  }
+  if(d==='bridge'){
+    // wooden plank deck across the stream
+    ctx.fillStyle = '#6b4a2b';
+    ctx.fillRect(px+2, py+2, TILE-4, TILE-4);
+    ctx.fillStyle = '#8a5f3f';
+    for(let i=0;i<7;i++) ctx.fillRect(px+3+i*4, py+4, 3, TILE-8);
+    ctx.fillStyle = '#a97c50';
+    for(let i=0;i<7;i++) ctx.fillRect(px+4+i*4, py+5, 1, TILE-10);
+    ctx.fillStyle = '#5f3d20';
+    ctx.fillRect(px+1, py+2, TILE-2, 2);
+    ctx.fillRect(px+1, py+TILE-4, TILE-2, 2);
+    ctx.fillStyle = '#7a5230';
+    ctx.fillRect(px+2, py+3, TILE-4, 1);
+    ctx.fillRect(px+2, py+TILE-5, TILE-4, 1);
+    return;
+  }
+  if(d==='berries'){
+    // little berry bush with red fruit
+    ctx.fillStyle = '#2f6623'; ctx.fillRect(px+8, py+22, 10, 6);
+    ctx.fillStyle = '#4f9a3a'; ctx.fillRect(px+9, py+19, 9, 5);
+    ctx.fillStyle = '#c8554a';
+    ctx.fillRect(px+11, py+20, 2, 2); ctx.fillRect(px+15, py+21, 2, 2); ctx.fillRect(px+13, py+24, 2, 2);
+    ctx.fillStyle = '#e05a4e';
+    ctx.fillRect(px+11, py+20, 1, 1); ctx.fillRect(px+15, py+21, 1, 1);
+    return;
+  }
+  if(d==='fern'){
+    // fan of dark-green fronds
+    ctx.fillStyle = '#3a7d2c';
+    ctx.fillRect(px+14, py+20, 3, 8);
+    ctx.fillRect(px+9, py+23, 6, 2);
+    ctx.fillRect(px+17, py+23, 6, 2);
+    ctx.fillRect(px+11, py+26, 4, 2);
+    ctx.fillRect(px+17, py+26, 4, 2);
+    ctx.fillStyle = '#4f9a3a';
+    ctx.fillRect(px+15, py+21, 1, 6);
+    ctx.fillRect(px+10, py+24, 1, 1); ctx.fillRect(px+18, py+24, 1, 1);
+    return;
   }
 }
 function drawHouse(h, alpha){
@@ -1293,11 +1424,16 @@ function drawMap(){
       const cell = tile(x,y);
       const px=x*TILE, py=y*TILE;
       if(cell.t==='water'){
-        ctx.fillStyle = rnd2(x,y) < 0.5 ? C.water : C.waterD;
+        const u=tile(x,y-1), d=tile(x,y+1), l=tile(x-1,y), r=tile(x+1,y);
+        const uw=u&&u.t==='water', dw=d&&d.t==='water', lw=l&&l.t==='water', rw=r&&r.t==='water';
+        // deep channel down the middle of the stream, lighter water at the edges
+        ctx.fillStyle = (uw&&dw&&!lw&&!rw) ? C.waterD : (rnd2(x,y) < 0.5 ? C.water : C.waterD);
         ctx.fillRect(px,py,TILE,TILE);
-        if(rnd2(x*2,y*2) < 0.25){ // sun glints
-          ctx.fillStyle = 'rgba(255,255,255,0.45)';
-          ctx.fillRect(px+6+(rnd2(x,y)*20|0), py+6+(rnd2(y,x)*20|0), 2, 2);
+        // animated flow glints that drift downstream
+        const gt = (performance.now()/50 + x*11 + y*7) % 30;
+        if(gt < 5){
+          ctx.fillStyle = 'rgba(255,255,255,0.32)';
+          ctx.fillRect(px+5+((gt*4)|0), py+8+((rnd2(y,x)*16)|0), 2, 2);
         }
       } else if(cell.t==='path'){
         ctx.fillStyle = rnd2(x,y) < 0.5 ? C.path : C.pathEdge;
@@ -1365,9 +1501,6 @@ function drawMap(){
       if(cell && cell.detail) drawDetail(x,y,cell);
     }
   }
-  // pond sparkle
-  ctx.fillStyle = '#cfe8ff';
-  for(let i=0;i<3;i++) ctx.fillRect(10+i*8, 30+i*10, 2, 2);
   // entities
   for(let y=y0;y<=y1;y++){
     for(let x=x0;x<=x1;x++){
