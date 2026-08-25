@@ -85,6 +85,7 @@ g.newGame();
 g.setPaused(false); // boot leaves the game paused behind the menu
 let st = g.S();
 check('starts with 25 wood', st.wood === 25);
+check('starts with 10 planks', st.planks === 10);
 check('starts with 50 coins', st.coins === 50);
 check('map generated ' + (COLS * ROWS) + ' tiles', st.grid.length === COLS * ROWS);
 const treeCount = st.grid.filter(c => c.t === 'tree').length;
@@ -95,6 +96,7 @@ check('spawn clearing is open grass', [0, 1, -1].every(dy => [0, 1, -1].every(dx
 check('campfire at spawn', st.grid[sp.y * COLS + sp.x].detail === 'campfire');
 check('player spawns at the clearing', st.player && Math.abs(st.player.x - (sp.x + 0.5)) < 0.01 && Math.abs(st.player.y - (sp.y + 2)) < 0.01);
 check('HUD wood shows 25', String(getEl('hud-wood').textContent) === '25');
+check('HUD planks shows 10', String(getEl('hud-planks').textContent) === '10');
 
 // --- chop a tree (direct action) ---
 const treeIdx = st.grid.findIndex(c => c.t === 'tree');
@@ -119,9 +121,9 @@ outer: for (let y = 1; y < ROWS - 2; y++) for (let x = 0; x < COLS - 1; x++) {
   if ([st.grid[i], st.grid[i + 1], st.grid[i + COLS], st.grid[i + COLS + 1]].every(c => c.t === 'grass')) { hx = x; hy = y; break outer; }
 }
 check('found 2x2 build spot', hx >= 0);
-const w0 = st.wood;
+const w0 = st.wood, p0 = st.planks;
 g.actNow(hx, hy);
-check('blueprint costs 25 wood (' + w0 + ' -> ' + st.wood + ')', st.wood === w0 - 25);
+check('blueprint costs 15 wood + 10 planks (' + w0 + '->' + st.wood + ', ' + p0 + '->' + st.planks + ')', st.wood === w0 - 15 && st.planks === p0 - 10);
 check('house placed', st.houses.length === 1 && st.houses[0].progress === 0 && st.houses[0].bp === 'cabin');
 check('house tiles occupied', st.grid[hy * COLS + hx].t === 'house');
 
@@ -164,15 +166,15 @@ g.actNow(hx, hy);
 check('hammer boost +20%', Math.abs(st.houses[0].progress - 0.5) < 0.001);
 check('boost costs 5 wood', st.wood === 95);
 
-// --- saw tool: slower but yields extra wood (direct action) ---
+// --- saw tool: turns the log into planks (wood stays untouched) ---
 const sawIdx = st.grid.findIndex(c => c.t === 'tree');
 const sawX = sawIdx % COLS, sawY = Math.floor(sawIdx / COLS);
 g.setTool('saw');
-const wSaw0 = st.wood;
+const wSaw0 = st.wood, pSaw0 = st.planks;
 g.actNow(sawX, sawY);
 check('sawing started', st.sawing !== null && st.sawing.x === sawX);
 step(130); // ~2.1s of sawing
-check('saw finished & yielded extra wood (' + (st.wood - wSaw0) + ')', st.sawing === null && st.wood >= wSaw0 + 7);
+check('saw turned log into planks (+' + (st.planks - pSaw0) + ')', st.sawing === null && st.planks >= pSaw0 + 7 && st.wood === wSaw0);
 check('saw left a stump', st.grid[sawIdx].t === 'stump');
 
 // --- player walks around the forest ---

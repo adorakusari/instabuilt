@@ -160,6 +160,7 @@
     <div class="hud-item"><span class="ico" id="hud-weather-ico">☀️</span><span id="hud-weather" class="pixel" style="font-size:10px;">Sunny</span></div>
     <div class="hud-item"><span id="hud-forecast" style="font-size:10px;">Next: —</span></div>
     <div class="hud-item"><span class="ico">🪵</span><b id="hud-wood">0</b></div>
+    <div class="hud-item"><span class="ico">🟫</span><b id="hud-planks">0</b></div>
     <div class="hud-item"><span class="ico">🪙</span><b id="hud-coins">0</b></div>
     <div class="hud-item"><span class="ico">⭐</span><b id="hud-rep">0</b><span style="opacity:.7" id="hud-rep-next"></span></div>
     <div class="hud-item"><span class="ico">🏅</span><span id="hud-level" class="pixel" style="font-size:10px;">Lv1</span></div>
@@ -198,7 +199,7 @@
       <div class="panel-title">VILLAGE LOG</div>
       <div id="msgLog"></div>
     </div>
-<div id="hintBar">🧭 Click a spot or use <b>WASD / arrows</b> to walk · 🪓 chop trees (big oaks = most wood) · 🪚 saw = slower, +3 wood · 🌱 plant · pick a house in <b>BUILD</b> and click grass</div>
+<div id="hintBar">🧭 Click a spot or use <b>WASD / arrows</b> to walk · 🪓 chop trees → <b>wood</b> · 🪚 saw logs → <b>planks</b> · 🌱 plant · 🏠 pick a house in BUILD &amp; click grass</div>
 
 <!-- Menu overlay -->
 <div class="overlay" id="ov-menu">
@@ -251,8 +252,8 @@
   <div class="modal">
     <h2>HOW TO PLAY</h2>
     <p>🧭 <b>Walk around</b> — click a spot on the forest, or use <b>WASD / arrow keys</b>. You start at the campfire in your clearing, surrounded by trees.</p>
-    <p>🪓 <b>Axe</b> — click a tree: you walk over and chop it. Big oaks give the most wood (8–10).</p>
-    <p>🪚 <b>Saw</b> — click a tree to saw it down over ~2s (watch the progress bar) for <b>+3 extra wood</b>.</p>
+    <p>🪓 <b>Axe</b> — click a tree: you walk over and chop it. You get <b>wood</b> (logs). Big oaks give the most (8–10).</p>
+    <p>🪚 <b>Saw</b> — click a tree: you saw the log into <b>planks</b> (+8–13 🟫) over ~2s. Houses need <b>wood + planks</b>.</p>
     <p>🌱 <b>Plant</b> — click grass to plant a free sapling. Saplings grow into trees in ~8 days (rain speeds it up).</p>
     <p>🔨 <b>Hammer</b> — click a house under construction to boost it +20% for 5 wood (once per house per day).</p>
     <p>🏠 <b>Build</b> — pick a blueprint, choose a roof color, click grass to place. Builders work automatically; weather &amp; night affect speed.</p>
@@ -309,10 +310,10 @@ const ROOFS = [
 ];
 
 const BLUEPRINTS = [
-  {id:'cabin',   name:'Tiny Cabin',    wood:25, days:2, w:2, h:2, rep:40,  coins:35,  unlockLv:1, ico:'🛖'},
-  {id:'cottage', name:'Cozy Cottage',  wood:50, days:3, w:3, h:2, rep:80,  coins:65,  unlockLv:1, ico:'🏡'},
-  {id:'house',   name:'Family House',  wood:90, days:5, w:3, h:3, rep:150, coins:120, unlockLv:3, ico:'🏠'},
-  {id:'lodge',   name:'Luxury Lodge',  wood:150,days:7, w:4, h:3, rep:260, coins:200, unlockLv:5, ico:'🏰'},
+  {id:'cabin',   name:'Tiny Cabin',    wood:15, planks:10, days:2, w:2, h:2, rep:40,  coins:35,  unlockLv:1, ico:'🛖'},
+  {id:'cottage', name:'Cozy Cottage',  wood:30, planks:20, days:3, w:3, h:2, rep:80,  coins:65,  unlockLv:1, ico:'🏡'},
+  {id:'house',   name:'Family House',  wood:55, planks:35, days:5, w:3, h:3, rep:150, coins:120, unlockLv:3, ico:'🏠'},
+  {id:'lodge',   name:'Luxury Lodge',  wood:90, planks:60, days:7, w:4, h:3, rep:260, coins:200, unlockLv:5, ico:'🏰'},
 ];
 const LVL_REP = [0, 150, 350, 650, 1000]; // level 1..5
 const PHASES = [
@@ -340,6 +341,25 @@ const SPR_SAPLING = [
 const SPR_STUMP = [
   '........','........','.tttttt.','tttttttt','.tttttt.','...tt...','...tt...','........'
 ];
+/* the player: a 12x16 pixel character, drawn at 2x (fills a tile) */
+/* chars: h=cap/hair, s=skin, e=eye, t=shirt, p=pants, b=boots */
+const SPR_PLAYER = {
+  idle:[
+    '....hhhh....','...hhhhhh...','..hhhhhhhh..','..hhsssshh..','..hsseessh..',
+    '...ssssss...','....ssss....','....s..s....','...tttttt...','..tttttttt..',
+    '..tttttttt..','...tttttt...','...pppppp...','...pppppp...','...pppppp...','..bb..bb....'
+  ],
+  walkA:[
+    '....hhhh....','...hhhhhh...','..hhhhhhhh..','..hhsssshh..','..hsseessh..',
+    '...ssssss...','....ssss....','....s..s....','...tttttt...','..tttttttt..',
+    '..tttttttt..','...tttttt...','...pp..pp...','...pp..pp...','...pp..pp...','..bb....bb..'
+  ],
+  walkB:[
+    '....hhhh....','...hhhhhh...','..hhhhhhhh..','..hhsssshh..','..hsseessh..',
+    '...ssssss...','....ssss....','....s..s....','...tttttt...','..tttttttt..',
+    '..tttttttt..','...tttttt...','....pppp....','....pppp....','...pp..pp...','..bb....bb..'
+  ]
+};
 const SHIRTS = ['#d95d39','#3f7dbf','#8fbf3f','#b85cd9','#e8b83a','#4fbfa5'];
 
 /* ---------- state ---------- */
@@ -372,11 +392,11 @@ function rnd2(x,y){ const h = hash2(x,y)>>>0; return (h%1000)/1000; }
 function newGame(){
   S = {
     day:1, phase:0, phaseT:0,
-    wood:25, coins:50, rep:0,
+    wood:25, planks:10, coins:50, rep:0,
     weather:'sunny', nextWeather:'cloudy',
     grid:[], houses:[], customers:[], custId:1,
     msgs:[], forestStart:0, daysSinceCust:0, stormMsgShown:false,
-    unlocked:[1], boostUsed:0, sawing:null, spawn:null,
+    unlocked:[1], boostUsed:0, sawing:null, spawn:null, spawnHintT:8,
   };
   genMap();
   S.forestStart = countForest();
@@ -461,7 +481,7 @@ function envPercent(){
 
 function saveGame(){
   try{
-    const d = {day:S.day, phase:S.phase, wood:S.wood, coins:S.coins, rep:S.rep,
+    const d = {day:S.day, phase:S.phase, wood:S.wood, planks:S.planks, coins:S.coins, rep:S.rep,
       weather:S.weather, nextWeather:S.nextWeather, grid:S.grid, houses:S.houses,
       customers:S.customers, custId:S.custId, forestStart:S.forestStart,
       daysSinceCust:S.daysSinceCust, unlocked:S.unlocked, msgs:S.msgs.slice(0,6)};
@@ -474,7 +494,7 @@ function loadSave(){
     if(!raw) return false;
     const d = JSON.parse(raw);
     if(!d || !d.grid || d.grid.length!==COLS*ROWS) return false;
-    S = {day:d.day, phase:d.phase||0, phaseT:0, wood:d.wood, coins:d.coins, rep:d.rep,
+    S = {day:d.day, phase:d.phase||0, phaseT:0, wood:d.wood, planks:(typeof d.planks==='number'?d.planks:10), coins:d.coins, rep:d.rep,
       weather:d.weather||'sunny', nextWeather:d.nextWeather||'cloudy', grid:d.grid,
       houses:d.houses||[], customers:d.customers||[], custId:d.custId||1,
       msgs:d.msgs||[], forestStart:d.forestStart||countForestFromGrid(d.grid),
@@ -485,6 +505,7 @@ function loadSave(){
     S.player = d.player || {x:S.spawn.x+0.5, y:S.spawn.y+2, target:null, anim:0};
     S.pending = null;
     S.sawing = null;
+    S.spawnHintT = 0;
     return true;
   }catch(e){ return false; }
 }
@@ -550,12 +571,13 @@ function tryPlaceBlueprint(bp, x, y){
       if(!isBuildable(cx,cy) || tile(cx,cy).occupied) return false;
     }
   }
-  if(S.wood < bp.wood){
-    pushMsg('Not enough wood! Need '+bp.wood+' 🪵 for the '+bp.name+'.', 'bad');
+  if(S.wood < bp.wood || S.planks < bp.planks){
+    pushMsg('Not enough materials! Need '+bp.wood+' 🪵 and '+bp.planks+' 🟫 planks for the '+bp.name+'.', 'bad');
     sfx('deny');
     return false;
   }
   S.wood -= bp.wood;
+  S.planks -= bp.planks;
   const roof = ROOFS[roofIdx];
   const id = S.houses.length+1;
   for(let oy=0;oy<bp.h;oy++){
@@ -597,15 +619,15 @@ function tickSawing(dt){
   if(sw.t >= sw.dur){
     const cell = tile(sw.x, sw.y);
     if(cell && isMatureTree(cell)){
-      const w = treeYield(cell, sw.x, sw.y) + 3; // the saw earns extra wood
-      S.wood += w;
+      const p = treeYield(cell, sw.x, sw.y) + 3; // the saw turns the log into planks
+      S.planks += p;
       setTile(sw.x, sw.y, 'stump', {regrow:5, detail:null});
-      addFloat(sw.x*TILE+TILE/2, sw.y*TILE+6, '+'+w+' 🪵', C.woodL);
+      addFloat(sw.x*TILE+TILE/2, sw.y*TILE+6, '+'+p+' 🟫 planks', C.woodL);
       for(let i=0;i<10;i++){
         particles.push({x:sw.x*TILE+16, y:sw.y*TILE+16, vx:(Math.random()-0.5)*70, vy:-20-Math.random()*50, life:0.6, maxLife:0.6, size:3, color:Math.random()<0.5?C.woodL:C.woodD, kind:'chip'});
       }
       sfx('chop');
-      pushMsg('Sawed down a tree (+'+w+' wood).', null, true);
+      pushMsg('Sawed the log into planks (+'+p+' 🟫).', null, true);
       checkEnv();
     }
     S.sawing = null;
@@ -693,6 +715,7 @@ function updatePlayer(dt){
   const p = S.player;
   if(!p) return;
   p.anim += dt;
+  if(S.spawnHintT > 0) S.spawnHintT -= dt;
   if(p.target){
     const dx = p.target.x - p.x, dy = p.target.y - p.y;
     const d = Math.hypot(dx,dy);
@@ -711,10 +734,23 @@ function drawPlayer(){
   const p = S.player;
   const px = Math.round(p.x*TILE), py = Math.round(p.y*TILE);
   const moving = !!p.target;
-  const frame = moving ? ((Math.floor(p.anim*6)%2===0) ? SPR_PERSON.walk : SPR_PERSON.idle) : SPR_PERSON.idle;
-  drawSprite(frame, px-4, py-8, {s:C.skin, h:'#2b2118', t:'#e5484d', p:'#3a4a5a'}, 1);
-  ctx.fillStyle = '#e5484d';   // red cap
-  ctx.fillRect(px-3, py-10, 6, 2);
+  if(moving){
+    if(p.target.x - p.x < -0.01) p.facing = -1;
+    else if(p.target.x - p.x > 0.01) p.facing = 1;
+  }
+  if(!p.facing) p.facing = 1;
+  const frame = moving ? ((Math.floor(p.anim*6)%2===0) ? SPR_PLAYER.walkA : SPR_PLAYER.walkB) : SPR_PLAYER.idle;
+  // soft shadow
+  ctx.fillStyle = 'rgba(20,40,15,0.3)';
+  ctx.beginPath(); ctx.ellipse(px, py+3, 8, 3, 0, 0, Math.PI*2); ctx.fill();
+  drawSprite(frame, px-12, py-30, {h:'#c8342a', s:C.skin, e:'#2b2118', t:'#3f7dbf', p:'#4a5a6a', b:'#2b2118'}, 2, p.facing<0);
+  // gold spawn beacon for the first seconds of a new game
+  if(S.spawnHintT > 0){
+    const b = 0.5+0.5*Math.sin(performance.now()/150);
+    ctx.fillStyle = 'rgba(242,201,76,'+(0.5+0.4*b).toFixed(2)+')';
+    ctx.fillRect(px-2, py-44-Math.floor(b*4), 5, 4);
+    ctx.fillRect(px-4, py-41-Math.floor(b*4), 9, 3);
+  }
 }
 
 /* ---------- clicking the map ---------- */
@@ -922,11 +958,12 @@ function update(dt){
 }
 
 /* ---------- rendering ---------- */
-function drawSprite(rows, px, py, colors, scale){
+function drawSprite(rows, px, py, colors, scale, flip){
   scale = scale||1;
   for(let y=0;y<rows.length;y++){
-    for(let x=0;x<rows[y].length;x++){
-      const ch = rows[y][x];
+    const row = rows[y];
+    for(let x=0;x<row.length;x++){
+      const ch = flip ? row[row.length-1-x] : row[x];
       if(ch==='.') continue;
       const col = colors[ch] || ch;
       ctx.fillStyle = col;
@@ -1344,6 +1381,7 @@ function updateHUD(){
   $('hud-weather').textContent = WEATHERS[S.weather].name;
   $('hud-forecast').textContent = 'Next: '+WEATHERS[S.nextWeather].ico+' '+WEATHERS[S.nextWeather].name;
   $('hud-wood').textContent = S.wood;
+  $('hud-planks').textContent = S.planks;
   $('hud-coins').textContent = S.coins;
   $('hud-rep').textContent = S.rep;
   const nxt = repToNext();
@@ -1364,7 +1402,7 @@ function refreshBuildMenu(){
     const b = document.createElement('button');
     b.className = 'bp-btn'+(bp.id===selBP?' sel':'')+(unlocked?'':' locked');
     b.innerHTML = '<span class="bp-ico">'+bp.ico+'</span><span class="bp-name">'+bp.name+'</span>'+
-      '<span class="bp-meta">🪵'+bp.wood+' · '+bp.days+'d · +'+bp.rep+'⭐</span>'+
+      '<span class="bp-meta">🪵'+bp.wood+' · 🟫'+bp.planks+' · '+bp.days+'d · +'+bp.rep+'⭐</span>'+
       (unlocked?'':'<span class="bp-lock">🔒 Lv'+bp.unlockLv+'</span>');
     if(unlocked){
       b.addEventListener('click', ()=>{
@@ -1400,11 +1438,11 @@ function refreshCustPanel(){
 function updateHint(){
   if(selBP){
     const bp = BLUEPRINTS.find(b=>b.id===selBP);
-    $('hintBar').innerHTML = '🏠 Building: <b>'+bp.name+'</b> ('+bp.wood+' 🪵) — click grass to place, <b>Esc</b> to cancel.';
+    $('hintBar').innerHTML = '🏠 Building: <b>'+bp.name+'</b> ('+bp.wood+' 🪵 + '+bp.planks+' 🟫) — click grass to place, <b>Esc</b> to cancel.';
   } else if(tool==='axe'){
-    $('hintBar').innerHTML = '🧭 Click a spot or <b>WASD/arrows</b> to walk · 🪓 click a <b>tree</b> to walk over &amp; chop (big oaks = most wood) · 🪚 saw slower, +3 wood · 🌱 plant · pick a house in <b>BUILD</b> and click grass!';
+    $('hintBar').innerHTML = '🧭 Click a spot or <b>WASD/arrows</b> to walk · 🪓 click a <b>tree</b> to walk over &amp; chop for wood (logs) · 🪚 saw turns logs into planks · pick a house in <b>BUILD</b>!';
   } else if(tool==='saw'){
-    $('hintBar').innerHTML = '🪚 Click a tree to <b>saw it down</b> — takes a moment, but each tree gives <b>+3 more wood</b> than the axe.';
+    $('hintBar').innerHTML = '🪚 Click a tree to <b>saw its log into planks</b> (+8–13 🟫) — houses need both wood &amp; planks!';
   } else if(tool==='plant'){
     $('hintBar').innerHTML = '🌱 Click grass to <b>plant a free sapling</b>. Rain makes them grow twice as fast!';
   } else if(tool==='hammer'){
@@ -1552,11 +1590,11 @@ function drawForeman(){
   if(!demo) return;
   const c = demo.foreman;
   const px = Math.round(c.x*TILE), py = Math.round(c.y*TILE);
-  const frame = (Math.floor(c.anim*4)%2===0) ? SPR_PERSON.idle : SPR_PERSON.walk;
-  drawSprite(frame, px-4, py-8, {s:C.skin, h:C.hair, t:'#e8a33a', p:'#5a4a3a'}, 1);
-  ctx.fillStyle = '#f2c94c';           // hard hat
-  ctx.fillRect(px-3, py-10, 6, 2);
-  ctx.fillRect(px-2, py-12, 4, 2);
+  const moving = !!c.target;
+  const frame = moving ? ((Math.floor(c.anim*6)%2===0) ? SPR_PLAYER.walkA : SPR_PLAYER.walkB) : SPR_PLAYER.idle;
+  ctx.fillStyle = 'rgba(20,40,15,0.3)';
+  ctx.beginPath(); ctx.ellipse(px, py+3, 8, 3, 0, 0, Math.PI*2); ctx.fill();
+  drawSprite(frame, px-12, py-30, {h:'#f2c94c', s:C.skin, e:'#2b2118', t:'#e8a33a', p:'#5a4a3a', b:'#2b2118'}, 2);
 }
 function drawDemoFx(){
   drawForeman();
