@@ -291,12 +291,12 @@ const PHASE_SECONDS = 12;   // 4 phases -> 48s per day
 const SAVE_KEY = 'instabuilt-timber-v1';
 
 const C = {
-  grassA:'#63ab3f', grassB:'#5a9a39', grassDark:'#3b7d4f',
-  dirt:'#ad7757', path:'#9c6a4c', pathEdge:'#7d5638',
-  trunk:'#8a5f3f', bark:'#6b4a2b', canopyA:'#3b7d4f', canopyB:'#75a743', canopyC:'#2f6623',
-  canopyRedA:'#a73230', canopyRedB:'#bc4133', canopyRedC:'#7d2a28',
-  wood:'#ad7757', woodD:'#8f5f3f', woodL:'#c9956b',
-  water:'#4fa3b8', waterD:'#3a8a9f',
+  grassA:'#5f9e3d', grassB:'#569334', grassDark:'#3d7a29',
+  dirt:'#c99b57', path:'#b98a4a', pathEdge:'#96693a',
+  trunk:'#8a5f3f', bark:'#6b4a2b', canopyA:'#4f9a3a', canopyB:'#63ab3f', canopyC:'#2f6623',
+  canopyRedA:'#a8322b', canopyRedB:'#cc5a4e', canopyRedC:'#7d2823',
+  wood:'#d7a964', woodD:'#b98a4a', woodL:'#e8c482',
+  water:'#3784bc', waterD:'#2e6fa5',
   scaffold:'#c9a86a',
   skin:'#ffc2a1', hair:'#4a3020', pants:'#4a5a6a',
   white:'#ffffff', black:'#1a1a1a', gold:'#f2c94c', red:'#e5484d',
@@ -452,6 +452,21 @@ function genMap(){
       const c = tile(x,y);
       if(c){ c.t='grass'; c.occupied=false; c.detail = (x===cx && y===cy) ? 'campfire' : null; }
     }
+  }
+  // frame the plot with a wooden fence, a wood pile, and a dirt trail to the path
+  for(let y=cy-3; y<=cy+3; y++){
+    for(let x=cx-3; x<=cx+3; x++){
+      if(Math.abs(x-cx)===3 || Math.abs(y-cy)===3){
+        const c = tile(x,y);
+        if(c && c.t==='grass') c.detail='fence';
+      }
+    }
+  }
+  const wp = tile(cx+2, cy+2);
+  if(wp && wp.t==='grass') wp.detail='woodpile';
+  for(let y=cy+1; y<ROWS-1; y++){
+    const c = tile(cx, y);
+    if(c && c.t==='grass' && c.detail!=='campfire') c.detail='trail';
   }
   // a second small glade, so the player has room to expand
   for(let y=13;y<=15;y++) for(let x=5;x<=8;x++){
@@ -976,71 +991,79 @@ function drawTree(x,y,cell){
   const seed = x*13+y*7;
   const shaking = S.sawing && S.sawing.x===x && S.sawing.y===y;
   const ox = shaking ? Math.sin(performance.now()/45)*2.5 : 0;
-  // soft ground shadow under the canopy (classic pixel-forest look)
+  // soft ground shadow under the canopy
   ctx.fillStyle = 'rgba(20,40,15,0.25)';
   ctx.beginPath(); ctx.ellipse(px+16+ox, py+29, 7, 3, 0, 0, Math.PI*2); ctx.fill();
   if(cell.t==='treePine'){
-    // pine: stacked pixel triangles
-    ctx.fillStyle = C.canopyC;
+    // pine: stacked pixel triangles with a sunny highlight side
+    ctx.fillStyle = '#2a5a20';
     for(let i=0;i<4;i++){
-      const w2 = Math.max(4, 20 - i*4);
-      ctx.fillRect(px+16-w2/2+ox, py+16-i*5, w2, 5);
+      const w2 = Math.max(4, 22 - i*5);
+      ctx.fillRect(px+16-w2/2+ox, py+15-i*5, w2, 5);
     }
-    ctx.fillStyle = C.canopyB;
-    ctx.fillRect(px+16-3+ox, py+4, 2, 2);
-    ctx.fillRect(px+16+1+ox, py+9, 2, 2);
+    ctx.fillStyle = '#3f7d2f';
+    for(let i=0;i<4;i++){
+      const w2 = Math.max(4, 22 - i*5);
+      ctx.fillRect(px+16-w2/2+ox+2, py+15-i*5, Math.max(2, Math.floor(w2/2)-2), 5);
+    }
+    ctx.fillStyle = '#63ab3f';
+    ctx.fillRect(px+15+ox, py+5, 2, 3);
+    ctx.fillRect(px+17+ox, py+10, 2, 3);
+    ctx.fillRect(px+14+ox, py+15, 2, 3);
     ctx.fillStyle = C.bark;
     ctx.fillRect(px+14+ox, py+18, 4, 12);
     return;
   }
   if(cell.t==='treeBig'){
-    // big old oak: huge dark canopy, thick trunk
+    // big old oak: huge rounded canopy, lit from the left
     const r = 13;
-    ctx.fillStyle = C.canopyC;
+    ctx.fillStyle = '#35682b';
     ctx.beginPath(); ctx.arc(px+16+ox, py+12, r, 0, Math.PI*2); ctx.fill();
     ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1;
     ctx.stroke();
-    ctx.fillStyle = C.canopyA;
-    for(let i=0;i<9;i++){
+    ctx.fillStyle = '#4f9a3a';
+    for(let i=0;i<20;i++){
       const a = rnd2(seed+i, seed*2+i)*Math.PI*2;
-      const cx = px+16+ox+Math.cos(a)*(r-3), cy = py+12+Math.sin(a)*(r-3)*0.8;
-      ctx.fillRect(Math.round(cx), Math.round(cy), 2, 2);
-    }
-    ctx.fillStyle = C.canopyB;
-    for(let i=0;i<16;i++){
-      const a = rnd2(seed*3+i, seed+i)*Math.PI*2;
       const cx = px+16+ox+Math.cos(a)*(r-2), cy = py+12+Math.sin(a)*(r-2)*0.8;
       ctx.fillRect(Math.round(cx), Math.round(cy), 2, 2);
     }
-    ctx.fillStyle = C.bark;
+    ctx.fillStyle = '#63ab3f';
+    for(let i=0;i<14;i++){
+      const a = rnd2(seed*3+i, seed+i)*Math.PI*2;
+      if(Math.cos(a) > -0.2) continue; // sunlight on the left
+      const cx = px+16+ox+Math.cos(a)*(r-2), cy = py+12+Math.sin(a)*(r-2)*0.8;
+      ctx.fillRect(Math.round(cx), Math.round(cy), 2, 2);
+    }
+    ctx.fillStyle = '#8a5f3f';
     ctx.fillRect(px+13+ox, py+18, 6, 12);
-    ctx.fillStyle = C.trunk;
+    ctx.fillStyle = '#6b4a2b';
     ctx.fillRect(px+12+ox, py+17, 2, 2);
     ctx.fillRect(px+18+ox, py+17, 2, 2);
     return;
   }
   const red = cell.t==='treeRed';
-  const r = red ? 9 : 9 + Math.floor(rnd2(seed,seed+1)*3);
-  const A = red ? C.canopyRedA : C.canopyA;
-  const B = red ? C.canopyRedB : C.canopyB;
-  const Cc = red ? C.canopyRedC : C.canopyC;
-  // canopy: dithered circle with dark outline
-  ctx.fillStyle = A;
+  const r = red ? 10 : 10 + Math.floor(rnd2(seed,seed+1)*3);
+  const base = red ? '#a8322b' : '#4f9a3a';
+  const hi   = red ? '#cc5a4e' : '#6cb048';
+  const lo   = red ? '#7d2823' : '#35702a';
+  // canopy: rounded, left-lit, outlined
+  ctx.fillStyle = base;
   ctx.beginPath(); ctx.arc(px+16+ox, py+12, r, 0, Math.PI*2); ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1;
   ctx.stroke();
-  ctx.fillStyle = B;
-  for(let i=0;i<14;i++){
-    const a = rnd2(seed+i, seed*2+i)*Math.PI*2;
-    const d = rnd2(seed+i+7, seed)* (r-3);
-    const cx = px+16+ox+Math.cos(a)*d, cy = py+12+Math.sin(a)*d*0.8;
-    ctx.fillRect(Math.round(cx), Math.round(cy), 2, 2);
+  ctx.fillStyle = hi;
+  for(let i=0;i<9;i++){
+    const a = rnd2(seed+i*3, seed*2+i)*Math.PI*2;
+    if(Math.cos(a) > 0.25) continue; // only the left half gets sunlight
+    const d = rnd2(seed+i+7, seed)*(r-3);
+    ctx.fillRect(Math.round(px+16+ox+Math.cos(a)*d), Math.round(py+12+Math.sin(a)*d*0.8), 2, 2);
   }
-  ctx.fillStyle = Cc;
-  for(let i=0;i<6;i++){
-    const a = rnd2(seed*3+i, seed+i)*Math.PI*2;
-    const cx = px+16+ox+Math.cos(a)*(r-2), cy = py+13+Math.sin(a)*(r-2)*0.8;
-    ctx.fillRect(Math.round(cx), Math.round(cy), 2, 2);
+  ctx.fillStyle = lo;
+  for(let i=0;i<8;i++){
+    const a = rnd2(seed*5+i, seed+i)*Math.PI*2;
+    if(Math.cos(a) < 0.2) continue; // right half shaded
+    const d = rnd2(seed+i+11, seed+3)*(r-3);
+    ctx.fillRect(Math.round(px+16+ox+Math.cos(a)*d), Math.round(py+12+Math.sin(a)*d*0.8), 2, 2);
   }
   // trunk
   ctx.fillStyle = C.bark;
@@ -1067,60 +1090,108 @@ function drawDetail(x,y,cell){
     return;
   }
   if(d==='bush'){
-    ctx.fillStyle = '#3b7d4f'; ctx.fillRect(px+8, py+23, 6, 5);
-    ctx.fillStyle = '#4f9a3a'; ctx.fillRect(px+10, py+21, 9, 6);
-    ctx.fillStyle = '#63ab3f'; ctx.fillRect(px+13, py+18, 5, 5);
-    ctx.fillStyle = '#bc4133'; ctx.fillRect(px+12, py+22, 2, 2);
-    ctx.fillStyle = '#c8d45d'; ctx.fillRect(px+17, py+20, 2, 2);
+    ctx.fillStyle = '#2f6623'; ctx.fillRect(px+7, py+23, 8, 6);
+    ctx.fillStyle = '#4f9a3a'; ctx.fillRect(px+9, py+20, 10, 7);
+    ctx.fillStyle = '#63ab3f'; ctx.fillRect(px+12, py+17, 6, 5);
+    ctx.fillStyle = '#8fbf3f'; ctx.fillRect(px+13, py+18, 2, 2);
+    ctx.fillStyle = '#c8554a'; ctx.fillRect(px+11, py+22, 2, 2);
+    ctx.fillRect(px+17, py+21, 2, 2);
     return;
   }
   if(d==='rock'){
-    ctx.fillStyle = '#9a9aa3'; ctx.fillRect(px+12, py+24, 8, 5);
-    ctx.fillStyle = '#8d8d96'; ctx.fillRect(px+9, py+25, 6, 4);
-    ctx.fillStyle = '#b8b8c0'; ctx.fillRect(px+14, py+23, 4, 2);
-    ctx.fillStyle = '#6f6f78'; ctx.fillRect(px+9, py+28, 11, 2);
-    ctx.fillStyle = '#7d8a4f'; ctx.fillRect(px+9, py+27, 3, 1);
+    ctx.fillStyle = '#8d8d96'; ctx.fillRect(px+12, py+24, 9, 5);
+    ctx.fillStyle = '#7a7a84'; ctx.fillRect(px+8, py+25, 6, 4);
+    ctx.fillStyle = '#b8b8c0'; ctx.fillRect(px+14, py+22, 5, 3);
+    ctx.fillStyle = '#6f6f78'; ctx.fillRect(px+8, py+28, 13, 2);
+    ctx.fillStyle = '#5a7a3a'; ctx.fillRect(px+9, py+27, 3, 1);
     return;
   }
   if(d==='mush'){
     ctx.fillStyle = '#e8dcc8'; ctx.fillRect(px+15, py+26, 2, 4);
-    ctx.fillStyle = '#bc4133'; ctx.fillRect(px+11, py+22, 9, 4);
+    ctx.fillStyle = '#c8554a'; ctx.fillRect(px+11, py+21, 10, 5);
+    ctx.fillStyle = '#e8a33a'; ctx.fillRect(px+11, py+21, 4, 1);
     ctx.fillStyle = '#fff'; ctx.fillRect(px+13, py+23, 1, 1);
     ctx.fillRect(px+17, py+23, 1, 1);
     return;
   }
   if(d==='tuft'){
-    ctx.fillStyle = '#75a743';
-    ctx.fillRect(px+10, py+26, 1, 4);
-    ctx.fillRect(px+13, py+24, 1, 5);
-    ctx.fillRect(px+16, py+26, 1, 4);
     ctx.fillStyle = '#63ab3f';
-    ctx.fillRect(px+11, py+28, 1, 2);
-    ctx.fillRect(px+15, py+27, 1, 3);
+    ctx.fillRect(px+10, py+25, 1, 5);
+    ctx.fillRect(px+13, py+23, 1, 6);
+    ctx.fillRect(px+16, py+25, 1, 5);
+    ctx.fillStyle = '#8fbf3f';
+    ctx.fillRect(px+11, py+27, 1, 3);
+    ctx.fillRect(px+15, py+26, 1, 4);
     return;
   }
   if(d==='flower'){
-    const col = rnd2(x*5,y*2) < 0.4 ? '#ffffff' : (rnd2(x*7,y*3) < 0.5 ? '#c8d45d' : '#e8a33a');
+    const col = rnd2(x*5,y*2) < 0.35 ? '#ffffff' : (rnd2(x*7,y*3) < 0.5 ? '#e8c83a' : '#e8873a');
     ctx.fillStyle = col;
-    ctx.fillRect(px+13, py+24, 3, 3);
+    ctx.fillRect(px+12, py+23, 5, 5);
     ctx.fillStyle = '#fff';
-    ctx.fillRect(px+14, py+25, 1, 1);
-    ctx.fillStyle = '#4f9a3a';
-    ctx.fillRect(px+14, py+27, 1, 3);
-    ctx.fillStyle = '#e5484d';
-    ctx.fillRect(px+16, py+25, 1, 1);
+    ctx.fillRect(px+13, py+24, 1, 1);
+    ctx.fillRect(px+15, py+24, 1, 1);
+    ctx.fillStyle = '#3f7d2f';
+    ctx.fillRect(px+13, py+26, 1, 4);
+    ctx.fillRect(px+16, py+27, 1, 3);
     return;
   }
   if(d==='log'){
     ctx.fillStyle = C.woodD;
-    ctx.fillRect(px+8, py+25, 15, 3);
+    ctx.fillRect(px+8, py+25, 16, 4);
     ctx.fillStyle = C.woodL;
-    ctx.fillRect(px+8, py+25, 15, 1);
-    ctx.fillStyle = C.woodD;
-    ctx.fillRect(px+10, py+23, 2, 3);
-    ctx.fillRect(px+19, py+23, 2, 3);
+    ctx.fillRect(px+8, py+25, 16, 1);
+    ctx.fillStyle = '#8a5f3f';
+    ctx.fillRect(px+9, py+22, 3, 4);
+    ctx.fillRect(px+20, py+22, 3, 4);
+    ctx.fillStyle = '#e8c482';
+    ctx.fillRect(px+9, py+22, 1, 1);
+    ctx.fillRect(px+20, py+22, 1, 1);
     ctx.fillStyle = '#4f9a3a';
-    ctx.fillRect(px+14, py+27, 6, 2);
+    ctx.fillRect(px+13, py+28, 6, 3);
+    return;
+  }
+  if(d==='woodpile'){
+    ctx.fillStyle = C.woodD;
+    ctx.fillRect(px+8, py+25, 16, 5);
+    ctx.fillStyle = C.woodL;
+    ctx.fillRect(px+8, py+25, 16, 1);
+    ctx.fillStyle = '#8a5f3f';
+    ctx.fillRect(px+10, py+21, 12, 5);
+    ctx.fillStyle = C.wood;
+    ctx.fillRect(px+10, py+21, 12, 1);
+    ctx.fillStyle = '#e8c482';
+    ctx.fillRect(px+11, py+22, 2, 3);
+    ctx.fillRect(px+15, py+22, 2, 3);
+    ctx.fillRect(px+19, py+22, 2, 3);
+    return;
+  }
+  if(d==='fence'){
+    ctx.fillStyle = C.woodD;
+    ctx.fillRect(px+5, py+19, 4, 11);
+    ctx.fillStyle = C.wood;
+    ctx.fillRect(px+6, py+21, 2, 2);
+    ctx.fillStyle = C.wood;
+    ctx.fillRect(px+2, py+21, 10, 3);
+    ctx.fillStyle = C.woodL;
+    ctx.fillRect(px+2, py+21, 10, 1);
+    ctx.fillStyle = C.wood;
+    ctx.fillRect(px+2, py+25, 10, 3);
+    ctx.fillStyle = C.woodL;
+    ctx.fillRect(px+2, py+25, 10, 1);
+    return;
+  }
+  if(d==='trail'){
+    ctx.fillStyle = '#c99b57';
+    ctx.fillRect(px+6, py+8, 20, 16);
+    ctx.fillStyle = '#b98a4a';
+    ctx.fillRect(px+8, py+12, 16, 2);
+    ctx.fillRect(px+10, py+18, 12, 2);
+    ctx.fillStyle = '#a87e3e';
+    ctx.fillRect(px+12, py+10, 2, 2);
+    ctx.fillRect(px+18, py+16, 2, 2);
+    ctx.fillStyle = '#8a6a44';
+    ctx.fillRect(px+14, py+21, 2, 2);
   }
 }
 function drawHouse(h, alpha){
@@ -1131,17 +1202,25 @@ function drawHouse(h, alpha){
   ctx.save();
   ctx.globalAlpha = alpha;
   const bodyH = bh-12, bodyY = py + bh - bodyH;
-  // body
+  // stone foundation
+  ctx.fillStyle = '#8d8d96';
+  ctx.fillRect(px+2, bodyY+bodyH-7, bw-4, 7);
+  ctx.fillStyle = '#a9a9b2';
+  for(let i=0;i<bw-4;i+=6) ctx.fillRect(px+2+i, bodyY+bodyH-7+(Math.floor(rnd2(h.id*13,i*7))%2?2:0), 4, 3);
+  ctx.fillStyle = '#6f6f78';
+  ctx.fillRect(px+2, bodyY+bodyH-2, bw-4, 2);
+  // plank walls
   ctx.fillStyle = C.wood;
-  ctx.fillRect(px+2, bodyY, bw-4, bodyH);
+  ctx.fillRect(px+2, bodyY, bw-4, bodyH-7);
+  ctx.fillStyle = C.woodL;
+  ctx.fillRect(px+2, bodyY, 3, bodyH-7);
   ctx.fillStyle = C.woodD;
-  for(let yy=bodyY+6; yy<bodyY+bodyH-2; yy+=7) ctx.fillRect(px+2, yy, bw-4, 1);
-  ctx.strokeStyle = C.woodD; ctx.lineWidth=2;
-  ctx.strokeRect(px+2, bodyY, bw-4, bodyH);
-  // roof (gable)
+  for(let yy=bodyY+7; yy<bodyY+bodyH-8; yy+=7) ctx.fillRect(px+3, yy, bw-7, 1);
+  ctx.fillRect(px+bw-5, bodyY, 3, bodyH-7);
+  // roof (gable with ridge highlight)
   ctx.fillStyle = roof.side;
   ctx.fillRect(px, bodyY-2, bw, 4);
-  const steps = Math.max(4, Math.round(bw/14));
+  const steps = Math.max(4, Math.round(bw/13));
   for(let i=0;i<steps;i++){
     const wdt = Math.max(4, Math.round(bw - (bw/steps)*i));
     ctx.fillStyle = (i%2===0)? roof.top : roof.side;
@@ -1149,30 +1228,50 @@ function drawHouse(h, alpha){
   }
   ctx.fillStyle = roof.dark;
   ctx.fillRect(px, bodyY-6-steps*3, bw, 2);
-  // crisp black outline (artwork style)
-  ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 2;
-  ctx.strokeRect(px+1, bodyY-7-steps*3+1, bw-2, (bodyY+bodyH)-(bodyY-7-steps*3)-2);
-  // door
-  const doorW = 10, doorH = 16;
-  const doorX = px + bw/2 - doorW/2, doorY = bodyY+bodyH-doorH;
+  ctx.fillStyle = roof.top;
+  ctx.fillRect(px+2, bodyY-6-steps*3+1, Math.round(bw*0.55), 1);
+  // chimney + rising smoke
+  const chX = px + Math.round(bw*0.74);
+  ctx.fillStyle = '#8d6a4a';
+  ctx.fillRect(chX, bodyY-6-steps*3-11, 8, 13);
+  ctx.fillStyle = '#a87e58';
+  ctx.fillRect(chX+1, bodyY-6-steps*3-10, 6, 3);
+  { // rising smoke
+    const t = performance.now()/600;
+    ctx.fillStyle = 'rgba(230,230,230,0.55)';
+    ctx.fillRect(chX+3, bodyY-6-steps*3-13-Math.floor((t%3)*3), 3, 3);
+    ctx.fillRect(chX+1, bodyY-6-steps*3-16-Math.floor((t%3)*4), 2, 2);
+  }
+  // arched door
+  const doorW = 12, doorH = 18;
+  const doorX = px + bw/2 - doorW/2, doorY = bodyY+bodyH-7-doorH;
+  ctx.fillStyle = '#5a3d22';
+  ctx.fillRect(doorX-2, doorY+3, 2, doorH-3);
+  ctx.fillRect(doorX+doorW, doorY+3, 2, doorH-3);
   ctx.fillStyle = C.woodD;
-  ctx.fillRect(doorX, doorY, doorW, doorH);
+  ctx.fillRect(doorX, doorY+3, doorW, doorH-3);
   ctx.fillStyle = C.wood;
-  ctx.fillRect(doorX+2, doorY+2, doorW-4, doorH-4);
-  ctx.fillStyle = C.gold; ctx.fillRect(doorX+doorW-5, doorY+doorH-7, 2, 2);
-  // windows
-  const winY = bodyY+10;
+  ctx.fillRect(doorX+1, doorY+4, doorW-2, doorH-4);
+  ctx.fillStyle = C.woodL;
+  ctx.fillRect(doorX+1, doorY+4, doorW-2, 2);
+  ctx.fillStyle = C.gold;
+  ctx.fillRect(doorX+doorW-6, doorY+doorH-8, 2, 2);
+  // windows with wooden frames
+  const winY = bodyY+9;
   const nWin = bp.w>=3 ? 2 : 1;
   for(let i=0;i<nWin;i++){
-    const wx = px + 8 + i*(bw-8-8)/(nWin);
-    ctx.fillStyle = S.phase===3 ? '#ffd76a' : '#cfe8ff';
-    ctx.fillRect(Math.round(wx), winY, 8, 8);
-    ctx.strokeStyle = C.woodD; ctx.lineWidth=1;
-    ctx.strokeRect(Math.round(wx)+0.5, winY+0.5, 8, 8);
+    const wx = px + 9 + i*(bw-18-12)/(nWin);
     ctx.fillStyle = C.woodD;
-    ctx.fillRect(Math.round(wx)+3, winY+1, 1, 7);
-    ctx.fillRect(Math.round(wx)+1, winY+3, 7, 1);
+    ctx.fillRect(Math.round(wx)-1, winY-2, 13, 13);
+    ctx.fillStyle = (S.phase===3) ? '#ffd76a' : '#bfe3ff';
+    ctx.fillRect(Math.round(wx), winY-1, 11, 11);
+    ctx.fillStyle = C.woodD;
+    ctx.fillRect(Math.round(wx)+4, winY-1, 1, 11);
+    ctx.fillRect(Math.round(wx), winY+3, 11, 1);
   }
+  // crisp outline (artwork style)
+  ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 2;
+  ctx.strokeRect(px+1, bodyY-7-steps*3+1, bw-2, (bodyY+bodyH)-(bodyY-7-steps*3)-2);
   // construction overlay
   if(!h.done){
     ctx.globalAlpha = alpha*0.55;
