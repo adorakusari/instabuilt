@@ -81,6 +81,14 @@ function check(name, cond) { if (cond) { passed++; console.log('PASS  ' + name);
 const g = globalThis.__game;
 check('game API exposed', !!g && typeof g.newGame === 'function');
 
+// --- static: every id the JS looks up must exist in the HTML ---
+// (the stub getElementById auto-creates missing elements, which would mask a
+//  null-crash like "Cannot read properties of null (reading 'addEventListener')")
+const jsIdLookups = [...GAME_JS.matchAll(/\$\('([^']+)'\)|getElementById\('([^']+)'\)/g)].map(m => m[1] || m[2]);
+const htmlIds = new Set([...html.matchAll(/id="([^"]+)"/g)].map(m => m[1]));
+const missingIds = [...new Set(jsIdLookups.filter(id => !htmlIds.has(id) && !id.startsWith('ov-') && !id.startsWith('tut')))];
+check('every JS id lookup exists in HTML' + (missingIds.length ? ' -> ' + missingIds.join(', ') : ''), missingIds.length === 0);
+
 g.newGame();
 g.setPaused(false); // boot leaves the game paused behind the menu
 let st = g.S();

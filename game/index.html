@@ -39,8 +39,8 @@
   #envFill.warn{background:linear-gradient(90deg,#c98a2f,#e5a63a);}
   #envFill.bad{background:linear-gradient(90deg,#b53a2f,#e5484d);}
   #phaseLbl{font-size:11px;}
-  #btnMute,#btnPause,#btnHelp{background:var(--panel-l);border:2px solid var(--line);color:var(--cream);font-size:14px;width:34px;height:30px;cursor:pointer;border-radius:3px;}
-  #btnMute:hover,#btnPause:hover,#btnHelp:hover{filter:brightness(1.2);}
+  #btn-mute,#btn-pause,#btn-help{background:var(--panel-l);border:2px solid var(--line);color:var(--cream);font-size:14px;width:34px;height:30px;cursor:pointer;border-radius:3px;}
+  #btn-mute:hover,#btn-pause:hover,#btn-help:hover{filter:brightness(1.2);}
   canvas#gameCanvas{
     position:fixed;inset:0;width:100vw;height:100vh;
     image-rendering:pixelated;image-rendering:crisp-edges;
@@ -167,9 +167,9 @@
     <div class="hud-item" id="hud-env"><span style="font-size:10px;">🌲 Environment</span><div id="envBar"><div id="envFill"></div></div></div>
     <div class="hud-item"><span class="ico" id="phaseIco">🌅</span><span id="phaseLbl">Morning</span></div>
     <div style="margin-left:auto;display:flex;gap:4px;">
-      <button id="btnHelp" title="How to play">❓</button>
-      <button id="btnMute" title="Sound on/off">🔊</button>
-      <button id="btnPause" title="Pause">⏸️</button>
+      <button id="btn-help" title="How to play">❓</button>
+      <button id="btn-mute" title="Sound on/off">🔊</button>
+      <button id="btn-pause" title="Pause">⏸️</button>
     </div>
   </div>
 
@@ -1707,6 +1707,15 @@ function loop(t){
   requestAnimationFrame(loop);
 }
 
+/* ---------- boot the world FIRST ----------
+   The game starts before any UI wiring below, so a single
+   bad button handler can never freeze the whole game. */
+newGame();        // generate the forest
+paused = true;    // menu is open — game time frozen until START
+fitCanvas();
+render();         // draw the first frame synchronously
+requestAnimationFrame(loop);
+
 /* ---------- boot ---------- */
 function clampCam(){
   cam.x = Math.max(0, Math.min(W-VW, cam.x));
@@ -1734,15 +1743,10 @@ function updateCamera(dt){
 }
 window.addEventListener('resize', fitCanvas);
 window.addEventListener('orientationchange', fitCanvas);
-newGame();        // generate & render the colorful forest behind the menu
-paused = true;    // menu is open — game time frozen until START
-fitCanvas();
-render();         // draw the first frame synchronously — the forest is visible even before any animation tick
 $('btn-continue').style.display = hasSave() ? '' : 'none';
 renderMsgLog();
 refreshBuildMenu();
 updateHint();
-requestAnimationFrame(loop);
 
 /* ---------- test API (used by headless harness) ---------- */
 window.__game = {
