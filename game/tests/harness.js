@@ -78,12 +78,17 @@ const g = globalThis.__game;
 check('game API exposed', !!g && typeof g.newGame === 'function');
 
 g.newGame();
+g.setPaused(false); // boot leaves the game paused behind the menu
 let st = g.S();
 check('starts with 25 wood', st.wood === 25);
 check('starts with 50 coins', st.coins === 50);
 check('map generated 384 tiles', st.grid.length === 384);
 const treeCount = st.grid.filter(c => c.t === 'tree').length;
 check('forest has trees (' + treeCount + ')', treeCount > 40);
+check('forest has varied tree types', st.grid.some(c => c.t === 'treePine') && st.grid.some(c => c.t === 'treeBig') && st.grid.some(c => c.t === 'treeRed'));
+const sp = st.spawn;
+check('spawn clearing is open grass', [0, 1, -1].every(dy => [0, 1, -1].every(dx => st.grid[(sp.y + dy) * 24 + (sp.x + dx)].t === 'grass')));
+check('campfire at spawn', st.grid[sp.y * 24 + sp.x].detail === 'campfire');
 check('HUD wood shows 25', String(getEl('hud-wood').textContent) === '25');
 
 // --- chop a tree ---
@@ -115,11 +120,13 @@ check('blueprint costs 25 wood (' + w0 + ' -> ' + st.wood + ')', st.wood === w0 
 check('house placed', st.houses.length === 1 && st.houses[0].progress === 0 && st.houses[0].bp === 'cabin');
 check('house tiles occupied', st.grid[hy * 24 + hx].t === 'house');
 
-// --- blueprint cannot be placed on forest ---
+// --- blueprint cannot be placed on non-grass ---
 g.selectBP('cottage');
 const housesBefore = st.houses.length;
-g.clickTileAt(tx, ty); // stump tile
-g.clickTileAt(tx + 2, ty + 2); // somewhere with a tree, if any
+const pondIdx = st.grid.findIndex(c => c.t === 'water');
+g.clickTileAt(pondIdx % 24, Math.floor(pondIdx / 24)); // pond
+const someTreeIdx = st.grid.findIndex(c => c.t === 'tree');
+g.clickTileAt(someTreeIdx % 24, Math.floor(someTreeIdx / 24)); // tree
 check('no house on non-grass', st.houses.length === housesBefore);
 g.selectBP(null);
 
@@ -151,6 +158,17 @@ g.setTool('hammer');
 g.clickTileAt(hx, hy);
 check('hammer boost +20%', Math.abs(st.houses[0].progress - 0.5) < 0.001);
 check('boost costs 5 wood', st.wood === 95);
+
+// --- saw tool: slower but yields extra wood ---
+const sawIdx = st.grid.findIndex(c => c.t === 'tree');
+const sawX = sawIdx % 24, sawY = Math.floor(sawIdx / 24);
+g.setTool('saw');
+const wSaw0 = st.wood;
+g.clickTileAt(sawX, sawY);
+check('sawing started', st.sawing !== null && st.sawing.x === sawX);
+step(130); // ~2.1s of sawing
+check('saw finished & yielded extra wood (' + (st.wood - wSaw0) + ')', st.sawing === null && st.wood >= wSaw0 + 7);
+check('saw left a stump', st.grid[sawIdx].t === 'stump');
 
 // --- canvas click handler works end-to-end ---
 g.setTool('axe');
