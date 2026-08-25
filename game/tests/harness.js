@@ -65,12 +65,14 @@ window.confirm = () => true;
 eval(GAME_JS);
 
 function step(frames) { for (let i = 0; i < frames; i++) { now += 16; const cb = rafCb; if (cb) { rafCb = null; cb(now); } } }
-function clickCanvas(tx, ty) {
+function clickWorld(tx, ty) {
+  // convert world tile -> screen coords (accounting for the camera), then fire the canvas click
+  const cam = g.camera();
   const el = getEl('gameCanvas');
-  (el._l.click || []).forEach(f => f({ clientX: tx * 32 + 16, clientY: ty * 32 + 16 }));
+  (el._l.click || []).forEach(f => f({ clientX: tx * 32 + 16 - cam.x, clientY: ty * 32 + 16 - cam.y }));
 }
 
-const COLS = 32, ROWS = 18;
+const COLS = 40, ROWS = 24;
 
 // ---------------- checks ----------------
 let passed = 0, failed = 0;
@@ -211,13 +213,13 @@ const pBeforeStep = { x: st.player.x, y: st.player.y };
 g.__keyStep ? null : null; // no-op, movement keys are exercised via playerStep indirectly
 // (keyboard is window-level; the walk-to-chop test already covers movement)
 
-// --- canvas click handler works end-to-end ---
+// --- canvas click handler works end-to-end (camera-aware) ---
 g.setTool('axe');
 const stumpIdx2 = st.grid.findIndex(c => c.t === 'stump');
 if (stumpIdx2 >= 0) {
   const wBefore2 = st.wood;
-  clickCanvas(stumpIdx2 % COLS, Math.floor(stumpIdx2 / COLS));
-  check('canvas click routed', st.wood === wBefore2); // stump -> no wood gained
+  clickWorld(stumpIdx2 % COLS, Math.floor(stumpIdx2 / COLS));
+  check('canvas click routed (camera-aware)', st.wood === wBefore2); // stump -> no wood gained
 } else check('stump present for click test', false);
 
 // --- level 5 / win at 1000+ rep, driven by a real claim ---

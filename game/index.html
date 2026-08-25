@@ -42,11 +42,9 @@
   #btnMute,#btnPause,#btnHelp{background:var(--panel-l);border:2px solid var(--line);color:var(--cream);font-size:14px;width:34px;height:30px;cursor:pointer;border-radius:3px;}
   #btnMute:hover,#btnPause:hover,#btnHelp:hover{filter:brightness(1.2);}
   canvas#gameCanvas{
-    position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:1;
-    width:min(96vw,1100px);height:auto;aspect-ratio:16/9;
+    position:fixed;inset:0;width:100vw;height:100vh;
     image-rendering:pixelated;image-rendering:crisp-edges;
     cursor:crosshair;background:#2e5d26;
-    box-shadow:0 0 0 3px #1f451c, 0 10px 30px #000a;
   }
   #leftPanel{
     position:fixed;left:10px;top:50%;transform:translateY(-50%);z-index:10;
@@ -174,7 +172,7 @@
     </div>
   </div>
 
-  <canvas id="gameCanvas" width="1024" height="576"></canvas>
+  <canvas id="gameCanvas" width="896" height="512"></canvas>
 
     <div id="leftPanel">
       <div class="panel-title">TOOLS</div>
@@ -283,8 +281,11 @@ window.addEventListener('error', function(e){
    ============================================================ */
 
 /* ---------- config ---------- */
-const TILE = 32, COLS = 32, ROWS = 18;
+const TILE = 32;
+const COLS = 40, ROWS = 24;   // the world: a big woodland
 const W = COLS * TILE, H = ROWS * TILE;
+let VW = 896, VH = 512;       // view size (internal px) — adapts to the window
+let cam = {x:0, y:0};         // camera offset into the world
 const PHASE_SECONDS = 12;   // 4 phases -> 48s per day
 const SAVE_KEY = 'instabuilt-timber-v1';
 
@@ -381,6 +382,8 @@ function newGame(){
   S.forestStart = countForest();
   S.player = {x:S.spawn.x+0.5, y:S.spawn.y+2, target:null, anim:0};
   S.pending = null;
+  cam.x = Math.max(0, Math.min(W-VW, S.spawn.x*TILE - VW/2));
+  cam.y = Math.max(0, Math.min(H-VH, S.spawn.y*TILE - VH/2));
   selBP = null; tool='axe';
   particles=[]; floaties=[]; winShown=false; playerLevel=1;
   pushMsg('Welcome to your forest plot! 🪓 Chop trees to get started.', 'gold');
@@ -511,7 +514,7 @@ function gainRep(n){
 function gainCoins(n){
   const b = Math.round(n*envBonus());
   S.coins += b;
-  addFloat(canvas.width/2, 40, '+'+b+' 🪙', C.gold);
+  addFloat(VW/2, 40, '+'+b+' 🪙', C.gold);
 }
 
 /* ---------- actions ---------- */
@@ -887,10 +890,12 @@ function update(dt){
   if(demo){
     updateDemo(dt);
     updateParticles(dt);
+    updateCamera(dt);
     return;
   }
   tickSawing(dt);
   updatePlayer(dt);
+  updateCamera(dt);
   // day/phase timer
   S.phaseT += dt;
   if(S.phaseT >= PHASE_SECONDS){
@@ -1164,9 +1169,14 @@ function drawPerson(c){
   }
 }
 function drawMap(){
+  // only draw the tiles currently inside the camera view
+  const x0 = Math.max(0, Math.floor(cam.x/TILE));
+  const x1 = Math.min(COLS-1, Math.ceil((cam.x+VW)/TILE));
+  const y0 = Math.max(0, Math.floor(cam.y/TILE));
+  const y1 = Math.min(ROWS-1, Math.ceil((cam.y+VH)/TILE));
   // ground
-  for(let y=0;y<ROWS;y++){
-    for(let x=0;x<COLS;x++){
+  for(let y=y0;y<=y1;y++){
+    for(let x=x0;x<=x1;x++){
       const cell = tile(x,y);
       const px=x*TILE, py=y*TILE;
       if(cell.t==='water'){
@@ -1196,8 +1206,8 @@ function drawMap(){
     }
   }
   // small forest details (bushes, rocks, mushrooms, flowers, the campfire)
-  for(let y=0;y<ROWS;y++){
-    for(let x=0;x<COLS;x++){
+  for(let y=y0;y<=y1;y++){
+    for(let x=x0;x<=x1;x++){
       const cell = tile(x,y);
       if(cell && cell.detail) drawDetail(x,y,cell);
     }
@@ -1206,8 +1216,8 @@ function drawMap(){
   ctx.fillStyle = '#cfe8ff';
   for(let i=0;i<3;i++) ctx.fillRect(10+i*8, 30+i*10, 2, 2);
   // entities
-  for(let y=0;y<ROWS;y++){
-    for(let x=0;x<COLS;x++){
+  for(let y=y0;y<=y1;y++){
+    for(let x=x0;x<=x1;x++){
       const cell = tile(x,y);
       if(isMatureTree(cell)) drawTree(x,y,cell);
       else if(cell.t==='sapling'){ drawSprite(SPR_SAPLING, x*TILE+12, y*TILE+20, {g:'#4f9a3a', t:C.bark}, 1); }
@@ -1224,24 +1234,24 @@ function drawMap(){
 function drawWeather(){
   if(S.weather==='rain' || S.weather==='storm'){
     ctx.fillStyle = 'rgba(80,110,160,0.18)';
-    ctx.fillRect(0,0,W,H);
+    ctx.fillRect(0,0,VW,VH);
     ctx.strokeStyle = 'rgba(200,220,255,0.5)';
     ctx.lineWidth = 1;
     const t = performance.now()/1000;
     for(let i=0;i<40;i++){
-      const sx = (i*47 + t*120)%W;
-      const sy = (i*73 + t*260)%H;
+      const sx = (i*47 + t*120)%VW;
+      const sy = (i*73 + t*260)%VH;
       ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(sx-3,sy+8); ctx.stroke();
     }
   }
   if(S.weather==='storm'){
     ctx.fillStyle = 'rgba(20,20,40,0.25)';
-    ctx.fillRect(0,0,W,H);
-    if(Math.random()<0.03){ ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.fillRect(0,0,W,H); }
+    ctx.fillRect(0,0,VW,VH);
+    if(Math.random()<0.03){ ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.fillRect(0,0,VW,VH); }
   }
   if(S.phase===3){ // night
     ctx.fillStyle = 'rgba(15,25,60,0.32)';
-    ctx.fillRect(0,0,W,H);
+    ctx.fillRect(0,0,VW,VH);
   }
 }
 function drawHover(){
@@ -1303,15 +1313,16 @@ function drawFx(){
   }
 }
 function render(){
-  ctx.clearRect(0,0,W,H);
+  ctx.clearRect(0,0,VW,VH);
   ctx.save();
   if(shake>0) ctx.translate((Math.random()-0.5)*4, (Math.random()-0.5)*4);
+  ctx.translate(-Math.round(cam.x), -Math.round(cam.y));
   drawMap();
   drawHover();
-  drawWeather();
   drawFx();
   drawDemoFx();
   ctx.restore();
+  drawWeather();  // screen-space overlays: rain, night, storm
 }
 
 /* ---------- HUD / UI ---------- */
@@ -1356,7 +1367,13 @@ function refreshBuildMenu(){
       '<span class="bp-meta">🪵'+bp.wood+' · '+bp.days+'d · +'+bp.rep+'⭐</span>'+
       (unlocked?'':'<span class="bp-lock">🔒 Lv'+bp.unlockLv+'</span>');
     if(unlocked){
-      b.addEventListener('click', ()=>{ selBP = (selBP===bp.id)? null : bp.id; refreshBuildMenu(); updateHint(); });
+      b.addEventListener('click', ()=>{
+        selBP = (selBP===bp.id)? null : bp.id;
+        refreshBuildMenu(); updateHint();
+        if(S && S.player && !demo && !winShown && selBP===bp.id){
+          addFloat(S.player.x*TILE, S.player.y*TILE-24, '🏠 '+bp.name+' — click grass to place!', C.gold);
+        }
+      });
     }
     grid.appendChild(b);
   }
@@ -1398,6 +1415,10 @@ function setTool(t){
   tool = t; selBP = null;
   document.querySelectorAll('.tool-btn').forEach(b=>b.classList.toggle('active', b.dataset.tool===t));
   refreshBuildMenu(); updateHint();
+  if(S && S.player && !demo && !winShown){
+    const names = {axe:'🪓 Axe ready — click a tree!', saw:'🪚 Saw ready — click a tree!', plant:'🌱 Plant ready — click grass!', hammer:'🔨 Hammer ready — click a build!'};
+    addFloat(S.player.x*TILE, S.player.y*TILE-24, names[t]||'', C.gold);
+  }
 }
 function showScreen(name){
   document.querySelectorAll('.overlay').forEach(o=>o.classList.add('hidden'));
@@ -1581,10 +1602,11 @@ function sfx(kind){
 
 /* ---------- input ---------- */
 function canvasPos(e){
-  const r = canvas.getBoundingClientRect ? canvas.getBoundingClientRect() : {left:0,top:0,width:W,height:H};
-  const sx = (e.clientX!==undefined) ? (e.clientX - r.left) * (W/r.width) : e.offsetX;
-  const sy = (e.clientY!==undefined) ? (e.clientY - r.top) * (H/r.height) : e.offsetY;
-  return {tx:Math.floor(sx/TILE), ty:Math.floor(sy/TILE)};
+  const r = canvas.getBoundingClientRect ? canvas.getBoundingClientRect() : {left:0,top:0,width:VW,height:VH};
+  const sx = (e.clientX!==undefined) ? (e.clientX - r.left) * (VW/r.width) : e.offsetX;
+  const sy = (e.clientY!==undefined) ? (e.clientY - r.top) * (VH/r.height) : e.offsetY;
+  const wx = sx + cam.x, wy = sy + cam.y;
+  return {tx:Math.floor(wx/TILE), ty:Math.floor(wy/TILE)};
 }
 canvas.addEventListener('click', (e)=>{
   if(!S) return;
@@ -1648,12 +1670,29 @@ function loop(t){
 }
 
 /* ---------- boot ---------- */
+function clampCam(){
+  cam.x = Math.max(0, Math.min(W-VW, cam.x));
+  cam.y = Math.max(0, Math.min(H-VH, cam.y));
+}
 function fitCanvas(){
   const vw = window.innerWidth || document.documentElement.clientWidth || 1280;
   const vh = window.innerHeight || document.documentElement.clientHeight || 800;
-  const scale = Math.max(0.35, Math.min(vw/W, vh/H));
-  canvas.style.width = Math.floor(W*scale)+'px';
-  canvas.style.height = Math.floor(H*scale)+'px';
+  const scale = Math.min(2, Math.max(0.75, vh/540));
+  VW = Math.max(640, Math.floor(vw/scale/2)*2);
+  VH = Math.max(360, Math.floor(vh/scale/2)*2);
+  canvas.width = VW; canvas.height = VH;
+  canvas.style.width = vw+'px';
+  canvas.style.height = vh+'px';
+  clampCam();
+}
+function updateCamera(dt){
+  let fx, fy;
+  if(demo && demo.foreman){ fx = demo.foreman.x*TILE; fy = demo.foreman.y*TILE; }
+  else if(S && S.player){ fx = S.player.x*TILE; fy = S.player.y*TILE; }
+  else { fx = (COLS/2)*TILE; fy = (ROWS/2)*TILE; }
+  cam.x += (fx - VW/2 - cam.x) * Math.min(1, dt*6);
+  cam.y += (fy - VH/2 - cam.y) * Math.min(1, dt*6);
+  clampCam();
 }
 window.addEventListener('resize', fitCanvas);
 window.addEventListener('orientationchange', fitCanvas);
@@ -1681,6 +1720,7 @@ window.__game = {
   setPaused: (v)=>{ paused = !!v; },
   actNow,
   player: ()=>S ? S.player : null,
+  camera: ()=>({x:cam.x, y:cam.y}),
 };
 </script>
 </body>
