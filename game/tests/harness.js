@@ -101,6 +101,8 @@ check('starts with 25 wood', st.wood === 25);
 check('starts with 10 planks', st.planks === 10);
 check('starts with 50 coins', st.coins === 50);
 check('new game starts in the forest zone', g.zone() === 'forest');
+check('goal tracker starts incomplete', !!g.goal && !g.goal().complete);
+check('goal panel renders', getEl('goalList').innerHTML.length > 0);
 check('map generated ' + (COLS * ROWS) + ' tiles', st.grid.length === COLS * ROWS);
 const treeCount = st.grid.filter(c => c.t === 'tree').length;
 check('forest has trees (' + treeCount + ')', treeCount > 40);
@@ -350,7 +352,7 @@ if (stumpIdx2 >= 0) {
   check('canvas click routed (camera-aware)', st.wood === wBefore2); // stump -> no wood gained
 } else check('stump present for click test', false);
 
-// --- level 5 / win at 1000+ rep, driven by a real claim ---
+// --- ultimate goal: the world's first sustainable wooden city ---
 g.setState(Object.assign({}, st, { rep: 800 }));
 st = g.S(); // re-grab: setState replaced the state object
 st.wood = 500;
@@ -360,8 +362,16 @@ st.houses.push({ id: 999, bp: 'lodge', x: 10, y: 6, progress: 0.99, roof: 'red',
 st.customers.push({ id: 100, bp: 'lodge', daysLeft: 5, x: 8, y: ROWS - 1, state: 'wait', t: 0, shirt: '#ff0000', anim: 0 });
 getEl('ov-win').classList.add('hidden'); // ensure overlay starts hidden
 step(260); // ~4.2s of build time -> lodge completes, customer claims
-check('lodge claim at high rep -> level 5 win', st.rep >= 1000 && st.houses.find(h => h.id === 999).claimed === true);
-check('win overlay shown', !getEl('ov-win').classList.contains('hidden'));
+check('lodge claim at high rep -> level 5', st.rep >= 1000 && st.houses.find(h => h.id === 999).claimed === true);
+check('1000 rep alone is NOT the win yet', getEl('ov-win').classList.contains('hidden'));
+// complete the ultimate goal: 8 houses + forest >= 90% + 1000 rep
+for (let i = 0; i < 8; i++) {
+  st.houses.push({ id: 2000 + i, bp: 'cabin', x: 5 + (i % 4), y: 2 + Math.floor(i / 4), progress: 1, roof: 'red', done: true, claimed: false, boostDay: 0, zone: 'cherry' });
+}
+st.forestStart = 1; // forest coverage reads 100%
+step(2);
+check('goal complete: city, sustainable, prosperous', !!g.goal() && g.goal().complete);
+check('win overlay shown for the sustainable city', !getEl('ov-win').classList.contains('hidden'));
 
 // --- intro demo: foreman chops a tree, builds a cabin, customer moves in ---
 g.startGame();

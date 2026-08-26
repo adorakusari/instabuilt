@@ -70,6 +70,11 @@
     box-shadow:0 4px 14px #0008;max-height:calc(100vh - 150px);overflow-y:auto;
   }
   .panel-title{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--gold);letter-spacing:1px;}
+  .goal-title{font-size:10px;line-height:1.7;color:var(--gold);margin:2px 0 6px;}
+  #goalList{display:flex;flex-direction:column;gap:4px;margin-bottom:6px;}
+  .goal-item{background:#00000044;border:2px solid #00000033;border-radius:3px;padding:4px 6px;font-size:10px;line-height:1.5;}
+  .goal-item.done{border-color:var(--green);color:#cde8b8;}
+  .goal-item b{color:var(--gold);}
   .tool-btn{
     display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;cursor:pointer;
     background:var(--panel-l);border:2px solid var(--line);border-radius:3px;color:var(--cream);
@@ -126,7 +131,7 @@
   .overlay.hidden{display:none;}
   #ov-menu{background:rgba(15,10,6,0.55);}
   .menu-modal{position:relative;max-width:600px;}
-  .menu-house{width:104px;height:104px;image-rendering:pixelated;border:3px solid #000;border-radius:4px;margin:0 auto 12px;display:block;box-shadow:0 4px 12px #000;}
+  .menu-house{width:104px;height:104px;object-fit:contain;image-rendering:pixelated;border:3px solid #000;border-radius:4px;margin:0 auto 12px;display:block;box-shadow:0 4px 12px #000;}
   .btn.small{font-size:9px;padding:8px 12px;}
   #demoBar{
     position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:40;
@@ -238,6 +243,9 @@
       <div class="bp-grid" id="bpGrid"></div>
     </div>
     <div id="rightPanel">
+      <div class="panel-title">🎯 ULTIMATE GOAL</div>
+      <div class="goal-title">🏆 Build the world's first <b>completely sustainable wooden city</b>!</div>
+      <div id="goalList"></div>
       <div class="panel-title">CUSTOMERS</div>
       <div id="custList"><div class="msg" style="border-color:transparent;opacity:.6">Waiting for the first customer…</div></div>
       <div class="panel-title">VILLAGE LOG</div>
@@ -251,6 +259,7 @@
     <img class="menu-house" src="../background/ZTF_AE.gif" alt="A wooden house"/>
     <h1>🌲 INSTABUILT<br/>VILLAGE</h1>
     <p>Turn a small forest plot into a thriving wooden village.<br/>Harvest <b>sustainably</b>, build beautiful houses, and keep your customers &amp; the environment happy.</p>
+    <p style="margin-top:10px;color:var(--gold);font-size:11px;">🏆 Ultimate goal: build the world's first <b>completely sustainable wooden city</b>!</p>
     <div class="row">
       <button class="btn" id="btn-start">▶ START</button>
       <button class="btn ghost" id="btn-continue" style="display:none">Continue</button>
@@ -281,8 +290,9 @@
 <!-- Win overlay -->
 <div class="overlay hidden" id="ov-win">
   <div class="modal">
-    <h1>🏆 VILLAGE THRIVES!</h1>
-    <p>Your wooden village is the talk of the valley. Beautiful houses, happy customers, and a forest that keeps on giving. That's <b>sustainable building</b>, InstaBuilt style!</p>
+    <img class="menu-house" src="../asset.png" alt="CEO"/>
+    <h1>🏆 SUSTAINABLE WOODEN CITY!</h1>
+    <p>The world's first <b>completely sustainable wooden city</b> — built with wood that gives back to the forest. The CEO couldn't be prouder: "This is what we came here to build!"</p>
     <div class="stats" id="winStats"></div>
     <div class="row">
       <button class="btn green" id="btn-keep">Keep Playing</button>
@@ -304,7 +314,8 @@
     <p>🏘️ <b>Cherry Communities</b> — chop your first tree and the <b>🏘️ travel button</b> unlocks. It takes you to an open meadow with the same graphics — <b>houses can only be built there</b>. Travel back to the forest to chop more wood.</p>
     <p>👷 <b>Your crew</b> — 🪚 the <b>Carpenter</b> walks the village and speeds up house builds, 🌳 the <b>Forester</b> plants trees across the forest, 🧑‍🌾 the <b>Farmer</b> grows crops that are sold for coins every morning. Watch them work — they talk to each other and to you!</p>
     <p>🏠 <b>Build</b> — in Cherry Communities pick a blueprint, choose a roof color, click grass to place. Builders work automatically; weather &amp; night affect speed.</p>
-    <p>🧑 <b>Customers</b> — they want specific houses. Complete them before they leave to earn coins &amp; reputation. Reach <b>1000 rep</b> to win!</p>
+    <p>🧑 <b>Customers</b> — they want specific houses. Complete them before they leave to earn coins &amp; reputation.</p>
+    <p>🏆 <b>The ultimate goal</b> — build the world's first <b>completely sustainable wooden city</b>: <b>8 houses</b> built, <b>1000 reputation</b>, and the <b>forest above 90%</b>. Keep the forest healthy while the city grows — that's the InstaBuilt way!</p>
     <p>🌲 <b>Environment</b> — keep forest coverage above 70% for a green bonus. Below 30% and customers stop coming.</p>
     <p>⛈️ <b>Weather</b> — rain grows trees faster, storms halt building and can damage work in progress.</p>
     <div class="row"><button class="btn" id="btn-close-help">Got it</button></div>
@@ -677,7 +688,7 @@ function saveGame(){
       weather:S.weather, nextWeather:S.nextWeather, grid:S.grid, houses:S.houses,
       customers:S.customers, custId:S.custId, forestStart:S.forestStart,
       daysSinceCust:S.daysSinceCust, unlocked:S.unlocked, msgs:S.msgs.slice(0,6),
-      zone:S.zone, zones:S.zones, treesCut:S.treesCut||0};
+      zone:S.zone, zones:S.zones, treesCut:S.treesCut||0, won: !!winShown};
     localStorage.setItem(SAVE_KEY, JSON.stringify(d));
   }catch(e){ /* ignore */ }
 }
@@ -698,7 +709,7 @@ function loadSave(){
       msgs:d.msgs||[], forestStart:d.forestStart||countForestFromGrid(zones.forest.grid),
       daysSinceCust:d.daysSinceCust||0, unlocked:d.unlocked||[1], stormMsgShown:false, boostUsed:0};
     playerLevel = levelFromRep();
-    winShown = playerLevel>=5;
+    winShown = !!d.won;
     S.spawn = {x:Math.floor(COLS/2), y:Math.floor(ROWS/2)};
     S.player = d.player || {x:S.spawn.x+0.5, y:S.spawn.y+2, target:null, anim:0};
     S.pending = null;
@@ -725,8 +736,8 @@ function gainRep(n){
   S.rep += Math.round(n);
   playerLevel = levelFromRep();
   if(playerLevel>before){
-    pushMsg('🌟 Village level '+playerLevel+'! New houses unlocked!'+(playerLevel>=5?' You win! 🏆':''), 'gold');
-    if(playerLevel===5){ S.coins += 100; winShown=true; showWin(); }
+    pushMsg('🌟 Village level '+playerLevel+'! New houses unlocked!'+(playerLevel>=5?' — your village thrives! Now finish the ultimate goal: a sustainable wooden city! 🏆':''), 'gold');
+    if(playerLevel===5){ S.coins += 100; }
     else if(playerLevel===3){ S.coins += 50; }
     refreshBuildMenu();
   }
@@ -1197,6 +1208,8 @@ function update(dt){
   // claim any waiting customer whose requested house already stands empty
   // (covers save/load edge: house finished while a customer was already waiting)
   claimSweep();
+  // the ultimate goal: the world's first completely sustainable wooden city
+  if(!winShown && goalState().complete) showWin();
   updateParticles(dt);
   // autosave every 20s
   saveTimer += dt;
@@ -1905,6 +1918,7 @@ function updateHUD(){
   fill.className = e<30 ? 'bad' : e<70 ? 'warn' : '';
   updateTravelBtn();
   updateCostColors();
+  updateGoalPanel();
 }
 /* ---------- zones: forest (wood) <-> Cherry Communities (building) ---------- */
 const ZONE_NAMES = {forest:'the forest', cherry:'Cherry Communities'};
@@ -2253,6 +2267,25 @@ function startGame(){
   pushMsg('🪓 Welcome to your forest! Click a tree with the Axe to chop wood.', 'gold');
   updateHUD();
 }
+const GOAL = {city:8, forest:90, rep:1000}; // the ultimate goal: a sustainable wooden city
+function goalState(){
+  const housesDone = S.houses.filter(h=>h.done).length;
+  const env = Math.round(envPercent());
+  const city = {cur:housesDone, need:GOAL.city, done: housesDone>=GOAL.city};
+  const forest = {cur:env, need:GOAL.forest, done: env>=GOAL.forest};
+  const rep = {cur:S.rep, need:GOAL.rep, done: S.rep>=GOAL.rep};
+  return {city, forest, rep, complete: city.done && forest.done && rep.done};
+}
+function updateGoalPanel(){
+  if(!S) return;
+  const g = goalState();
+  const el = $('goalList');
+  if(!el) return;
+  el.innerHTML =
+    '<div class="goal-item'+(g.city.done?' done':'')+'">'+(g.city.done?'✅':'⬜')+' 🏠 City — <b>'+g.city.cur+'</b>/'+g.city.need+' houses</div>'+
+    '<div class="goal-item'+(g.forest.done?' done':'')+'">'+(g.forest.done?'✅':'⬜')+' 🌳 Sustainable — forest <b>'+g.forest.cur+'%</b> (need '+g.forest.need+'%)</div>'+
+    '<div class="goal-item'+(g.rep.done?' done':'')+'">'+(g.rep.done?'✅':'⬜')+' ⭐ Prosperous — <b>'+g.rep.cur+'</b>/'+g.rep.need+' rep</div>';
+}
 function showWin(){
   const winEl = document.getElementById('ov-win');
   if(winEl && !winEl.classList.contains('hidden')) return; // already showing
@@ -2264,6 +2297,7 @@ function showWin(){
     '<div class="s">⭐ <b>'+S.rep+'</b> reputation</div>'+
     '<div class="s">🌲 <b>'+Math.round(envPercent())+'%</b> forest</div>';
   showScreen('win');
+  sfx('done');
 }
 
 /* ---------- intro demo: the foreman shows how to chop & build ---------- */
@@ -2574,6 +2608,7 @@ window.__game = {
   zone: ()=>S ? S.zone : null,
   treesCut: ()=>S ? (S.treesCut||0) : 0,
   npcs: ()=>S ? S.npcs : null,
+  goal: ()=> goalState(),
   forceNpcJob: (id, job)=>{ const n = S && S.npcs && S.npcs.find(x=>x.id===id); if(n){ n.job=job; n.job.active=true; n.jobT=1e9; n.target=null; n.restT=0; } },
 };
 </script>
