@@ -128,6 +128,36 @@ check('chop increases wood (' + woodBefore + ' -> ' + st.wood + ')', st.wood > w
 check('tree became stump', st.grid[treeIdx].t === 'stump');
 check('cherry travel unlocked after first chop', g.treesCut() >= 1);
 
+// --- tree types give different wood ---
+const pineIdx = st.grid.findIndex(c => c.t === 'treePine');
+check('pine tree exists', pineIdx >= 0);
+const woodBeforePine = st.wood;
+g.actNow(pineIdx % COLS, Math.floor(pineIdx / COLS));
+const pineWood = st.wood - woodBeforePine;
+check('pine gives cheap wood (' + pineWood + ')', pineWood >= 3 && pineWood <= 5);
+check('pine stump regrows fast', st.grid[pineIdx].regrow === 3);
+
+const bigIdx = st.grid.findIndex(c => c.t === 'treeBig');
+check('ancient tree exists', bigIdx >= 0);
+const woodBeforeBig = st.wood;
+g.actNow(bigIdx % COLS, Math.floor(bigIdx / COLS));
+const bigWood = st.wood - woodBeforeBig;
+check('ancient tree is extremely valuable (' + bigWood + ')', bigWood >= 15 && bigWood <= 20);
+
+const mapleIdx = st.grid.findIndex(c => c.t === 'treeRed');
+check('maple tree exists', mapleIdx >= 0);
+const coinsBeforeMaple = st.coins;
+const woodBeforeMaple = st.wood;
+g.actNow(mapleIdx % COLS, Math.floor(mapleIdx / COLS));
+check('maple gives decorative wood + coins (+' + (st.coins - coinsBeforeMaple) + ' 🪙)', st.coins - coinsBeforeMaple >= 2 && st.wood > woodBeforeMaple);
+
+const oakIdx = st.grid.findIndex(c => c.t === 'tree');
+check('oak tree exists', oakIdx >= 0);
+const woodBeforeOak = st.wood;
+g.actNow(oakIdx % COLS, Math.floor(oakIdx / COLS));
+const oakWood = st.wood - woodBeforeOak;
+check('oak gives strong wood (' + oakWood + ')', oakWood >= 6 && oakWood <= 8);
+
 // --- plant a sapling (direct action) ---
 g.setTool('plant');
 const grassIdx = st.grid.findIndex(c => c.t === 'grass');

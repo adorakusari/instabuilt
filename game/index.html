@@ -296,9 +296,10 @@
   <div class="modal">
     <h2>HOW TO PLAY</h2>
     <p>🧭 <b>Walk around</b> — click a spot on the forest, or use <b>WASD / arrow keys</b>. You start at the campfire in your clearing, surrounded by trees.</p>
-    <p>🪓 <b>Axe</b> — click a tree: you walk over and chop it. You get <b>wood</b> (logs). Big oaks give the most (8–10).</p>
-    <p>🪚 <b>Saw</b> — click a tree: you saw the log into <b>planks</b> (+8–13 🟫) over ~2s. Houses need <b>wood + planks</b>.</p>
-    <p>🌱 <b>Plant</b> — click grass to plant a free sapling. Saplings grow into trees in ~8 days (rain speeds it up).</p>
+    <p>🪓 <b>Axe</b> — click a tree: you walk over and chop it for <b>wood</b>.</p>
+    <p>🪚 <b>Saw</b> — click a tree: you saw the log into <b>planks</b> over ~2s. Houses need <b>wood + planks</b>.</p>
+    <p>🌳 <b>Tree types</b> — 🌳 <b>Oak</b> = strong wood (6–8) · 🌲 <b>Pine</b> = cheap wood, regrows fast (3–5) · 🍁 <b>Maple</b> = decorative, sells for coins (4–6) · 🌲 <b>Ancient</b> = extremely valuable (15–20) · 🌱 <b>Young</b> = plant it, it grows into an oak. Hover a tree to see its type!</p>
+    <p>🌱 <b>Plant</b> — click grass to plant a free young tree. It grows into an oak in ~8 days (rain speeds it up).</p>
     <p>🔨 <b>Hammer</b> — click a house under construction to boost it +20% for 5 wood (once per house per day).</p>
     <p>🏘️ <b>Cherry Communities</b> — chop your first tree and the <b>🏘️ travel button</b> unlocks. It takes you to an open meadow with the same graphics — <b>houses can only be built there</b>. Travel back to the forest to chop more wood.</p>
     <p>👷 <b>Your crew</b> — 🪚 the <b>Carpenter</b> walks the village and speeds up house builds, 🌳 the <b>Forester</b> plants trees across the forest, 🧑‍🌾 the <b>Farmer</b> grows crops that are sold for coins every morning. Watch them work — they talk to each other and to you!</p>
@@ -508,11 +509,12 @@ function genMap(){
   // --- 3. dense forests; each corner has its own character ---
   const pick = (r, mix)=>{ let acc=0; for(const m of mix){ acc+=m[1]; if(r<acc) return m[0]; } return mix[mix.length-1][0]; };
   const MIX = {
-    tl:[['tree',0.50],['treePine',0.15],['treeBig',0.17],['treeRed',0.13],['treeDead',0.05]],
-    tr:[['tree',0.34],['treePine',0.46],['treeBig',0.09],['treeRed',0.06],['treeDead',0.05]],
-    bl:[['tree',0.42],['treePine',0.10],['treeBig',0.11],['treeRed',0.32],['treeDead',0.05]],
-    br:[['tree',0.42],['treePine',0.08],['treeBig',0.40],['treeRed',0.05],['treeDead',0.05]],
-    mid:[['tree',0.44],['treePine',0.24],['treeBig',0.18],['treeRed',0.10],['treeDead',0.04]]
+    // ancient trees (treeBig) are rarer — they are extremely valuable
+    tl:[['tree',0.53],['treePine',0.15],['treeBig',0.12],['treeRed',0.14],['treeDead',0.06]],
+    tr:[['tree',0.36],['treePine',0.49],['treeBig',0.05],['treeRed',0.05],['treeDead',0.05]],
+    bl:[['tree',0.44],['treePine',0.10],['treeBig',0.07],['treeRed',0.33],['treeDead',0.06]],
+    br:[['tree',0.56],['treePine',0.09],['treeBig',0.24],['treeRed',0.05],['treeDead',0.06]],
+    mid:[['tree',0.46],['treePine',0.26],['treeBig',0.10],['treeRed',0.13],['treeDead',0.05]]
   };
   for(let y=0;y<ROWS;y++){
     for(let x=0;x<COLS;x++){
@@ -643,12 +645,19 @@ function genCherryMap(){
 function isMatureTree(cell){
   return !!cell && (cell.t==='tree'||cell.t==='treeBig'||cell.t==='treePine'||cell.t==='treeRed'||cell.t==='treeDead');
 }
+const TREE_INFO = {
+  tree:     {name:'Oak',      ico:'🌳', tag:'strong wood',        min:6,  max:8},
+  treePine: {name:'Pine',     ico:'🌲', tag:'cheap wood',         min:3,  max:5},
+  treeRed:  {name:'Maple',    ico:'🍁', tag:'decorative wood',    min:4,  max:6},
+  treeBig:  {name:'Ancient',  ico:'🌲', tag:'extremely valuable', min:15, max:20},
+  treeDead: {name:'Dead tree',ico:'🪵', tag:'dry wood',           min:4,  max:5},
+};
+function treeArticle(name){ return /^[AEIOU]/.test(name) ? 'an' : 'a'; }
 function treeYield(cell, x, y){
-  const r = Math.floor(rnd2(x*3+1, y*7+2)*3);
-  if(cell.t==='treeBig') return 8 + r;   // 8-10
-  if(cell.t==='treePine') return 4 + r%2; // 4-5
-  if(cell.t==='treeDead') return 4 + r%2; // 4-5 dry wood
-  return 5 + r;                           // 5-7
+  const info = TREE_INFO[cell.t];
+  if(!info) return 5 + Math.floor(rnd2(x*3+1, y*7+2)*3);
+  const r = Math.floor(rnd2(x*3+1, y*7+2) * (info.max - info.min + 1));
+  return info.min + r;
 }
 function countForest(){
   const fg = (S.zones && S.zones.forest) ? S.zones.forest.grid : S.grid;
@@ -732,18 +741,29 @@ function gainCoins(n){
 function chopTree(x,y){
   const cell = tile(x,y);
   if(!cell || !isMatureTree(cell)) return;
+  const info = TREE_INFO[cell.t];
+  const t0 = cell.t;                       // capture BEFORE setTile mutates the cell
   const w = treeYield(cell, x, y);
   S.wood += w;
   S.treesCut = (S.treesCut||0) + 1;
-  setTile(x,y,'stump',{regrow:5, detail:null});
+  const regrow = (t0==='treePine') ? 3 : 5;   // pine regrows fast
+  setTile(x,y,'stump',{regrow, detail:null});
   cell.occupied=false;
-  addFloat(x*TILE+TILE/2, y*TILE+6, '+'+w+' 🪵', C.woodL);
+  addFloat(x*TILE+TILE/2, y*TILE+6, '+'+w+' 🪵'+(info?' '+info.ico:''), C.woodL);
+  if(t0==='treeRed'){                          // maple is decorative & prized
+    S.coins += 2;
+    addFloat(x*TILE+TILE/2, y*TILE-6, '+2 🪙', C.gold);
+  }
   for(let i=0;i<8;i++){
     particles.push({x:x*TILE+16, y:y*TILE+16, vx:(Math.random()-0.5)*60, vy:-20-Math.random()*50,
       life:0.6+Math.random()*0.4, maxLife:1, size:3, color:Math.random()<0.5?C.woodL:C.woodD, kind:'chip'});
   }
   sfx('chop');
-  pushMsg('Chopped a tree (+'+w+' wood). Its stump will regrow.', null, true);
+  let msg = 'Chopped '+treeArticle(info.name)+' '+info.name+' '+info.ico+' — '+info.tag+' (+'+w+' 🪵).';
+  if(t0==='treePine') msg += ' Its stump regrows fast!';
+  else if(t0==='treeRed') msg += ' (+2 🪙 for the decorative wood)';
+  else msg += ' Its stump will regrow.';
+  pushMsg(msg, null, true);
   checkEnv();
 }
 function plantSapling(x,y){
@@ -826,16 +846,27 @@ function tickSawing(dt){
   if(sw.t >= sw.dur){
     const cell = tile(sw.x, sw.y);
     if(cell && isMatureTree(cell)){
+      const info = TREE_INFO[cell.t];
+      const t0 = cell.t;                     // capture BEFORE setTile mutates the cell
       const p = treeYield(cell, sw.x, sw.y) + 3; // the saw turns the log into planks
       S.planks += p;
       S.treesCut = (S.treesCut||0) + 1;
-      setTile(sw.x, sw.y, 'stump', {regrow:5, detail:null});
-      addFloat(sw.x*TILE+TILE/2, sw.y*TILE+6, '+'+p+' 🟫 planks', C.woodL);
+      const regrow = (t0==='treePine') ? 3 : 5;
+      setTile(sw.x, sw.y, 'stump', {regrow, detail:null});
+      addFloat(sw.x*TILE+TILE/2, sw.y*TILE+6, '+'+p+' 🟫 planks'+(info?' '+info.ico:''), C.woodL);
+      if(t0==='treeRed'){
+        S.coins += 3;
+        addFloat(sw.x*TILE+TILE/2, sw.y*TILE-6, '+3 🪙', C.gold);
+      }
       for(let i=0;i<10;i++){
         particles.push({x:sw.x*TILE+16, y:sw.y*TILE+16, vx:(Math.random()-0.5)*70, vy:-20-Math.random()*50, life:0.6, maxLife:0.6, size:3, color:Math.random()<0.5?C.woodL:C.woodD, kind:'chip'});
       }
       sfx('chop');
-      pushMsg('Sawed the log into planks (+'+p+' 🟫).', null, true);
+      let msg = 'Sawed '+treeArticle(info.name)+' '+info.name+' '+info.ico+' into planks (+'+p+' 🟫).';
+      if(t0==='treePine') msg += ' Its stump regrows fast!';
+      else if(t0==='treeRed') msg += ' (+3 🪙 for the decorative planks)';
+      else msg += ' Its stump will regrow.';
+      pushMsg(msg, null, true);
       checkEnv();
     }
     S.sawing = null;
@@ -1714,6 +1745,18 @@ function drawWeather(){
     ctx.fillRect(0,0,VW,VH);
   }
 }
+function drawTreeInfoLabel(tx, ty, cell){
+  const info = TREE_INFO[cell.t]; if(!info) return;
+  const label = info.ico+' '+info.name+' — '+info.tag;
+  const lw = label.length*6+10;
+  const lx = tx*TILE+16, ly = ty*TILE-8;
+  ctx.fillStyle='rgba(20,32,28,0.92)';
+  ctx.fillRect(Math.round(lx-lw/2), ly-14, lw, 14);
+  ctx.strokeStyle='rgba(242,201,76,0.7)'; ctx.lineWidth=1;
+  ctx.strokeRect(Math.round(lx-lw/2), ly-14, lw, 14);
+  ctx.fillStyle='#f5e6c8'; ctx.font='9px monospace'; ctx.textAlign='center';
+  ctx.fillText(label, lx, ly-3);
+}
 function drawHover(){
   if(!hover) return;
   const {tx,ty} = hover;
@@ -1732,9 +1775,11 @@ function drawHover(){
   } else if(tool==='axe' && isMatureTree(cell)){
     ctx.strokeStyle='rgba(255,255,255,0.6)'; ctx.lineWidth=2;
     ctx.strokeRect(tx*TILE+1, ty*TILE+1, TILE-2, TILE-2);
+    drawTreeInfoLabel(tx, ty, cell);
   } else if(tool==='saw' && isMatureTree(cell)){
     ctx.strokeStyle='rgba(120,190,255,0.8)'; ctx.lineWidth=2;
     ctx.strokeRect(tx*TILE+1, ty*TILE+1, TILE-2, TILE-2);
+    drawTreeInfoLabel(tx, ty, cell);
   } else if(tool==='plant' && isGrass(tx,ty)){
     ctx.strokeStyle='rgba(143,191,63,0.9)'; ctx.lineWidth=2;
     ctx.strokeRect(tx*TILE+1, ty*TILE+1, TILE-2, TILE-2);
