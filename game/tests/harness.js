@@ -60,6 +60,11 @@ window.addEventListener = function () {};
 window.innerWidth = 1280; window.innerHeight = 800;
 window.AudioContext = undefined; window.webkitAudioContext = undefined;
 window.confirm = () => true;
+// Image stub: the game loads the CEO portrait (asset.png) via new Image()
+window.Image = class {
+  constructor() { this.complete = true; this.naturalWidth = 2; this.naturalHeight = 2; this.onload = null; this.onerror = null; }
+  set src(v) {}
+};
 
 // ---------------- load the app ----------------
 eval(GAME_JS);

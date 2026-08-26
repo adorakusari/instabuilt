@@ -1922,6 +1922,11 @@ function showWin(){
 
 /* ---------- intro demo: the foreman shows how to chop & build ---------- */
 let demo = null;
+/* the CEO — the player's own character (asset.png) shown in the intro demo */
+const CEO_IMG = new Image();
+CEO_IMG.src = '../asset.png';
+/* crop box inside asset.png: the character fills x 153..322, y 29..491 of the 500x500 canvas */
+const CEO_SRC = {x:153, y:29, w:169, h:462};
 
 function findDemoTree(){
   for(let y=2;y<10;y++) for(let x=6;x<16;x++){
@@ -1939,10 +1944,10 @@ function runDemo(){
     foreman:{x:1.2, y:ROWS-1.4, target:null, anim:0},
     highlight:null, phaseActed:false,
     phases:[
-      {cap:'🌲 Welcome, builder! This is your forest plot — chop trees here to collect wood.', wait:3.0, act:()=>{ demo.highlight=null; }},
-      {cap:'🪓 Mature trees give 5–7 wood. Watch how the Axe chops one!', wait:0, act:()=>{ demo.highlight={tx:tree.x,ty:tree.y,w:1,h:1}; demo.foreman.target={x:tree.x+0.5, y:tree.y+1.4}; }, until:()=> !demo.foreman.target},
+      {cap:'CEO: "Welcome to Woodland Empire! I\'m the CEO of the company. We build beautiful, environmentally friendly homes using one of nature\'s greatest resources: wood."', wait:8.0, act:()=>{ demo.highlight=null; }},
+      {cap:'CEO: "Wood is renewable, which means we can grow more of it. But we have to take care of the forest while we build." 🪓 Watch how the Axe chops one!', wait:0, act:()=>{ demo.highlight={tx:tree.x,ty:tree.y,w:1,h:1}; demo.foreman.target={x:tree.x+0.5, y:tree.y+1.4}; }, until:()=> !demo.foreman.target},
       {cap:'💥 Chopped! The stump regrows by itself — and you can plant even more trees.', wait:2.6, act:()=> demoChop()},
-      {cap:'🏘️ Houses are built in Cherry Communities — your own open building zone. Follow!', wait:0, act:()=>{ travelTo('cherry'); demo.foreman.x=2.5; demo.foreman.y=21.5; demo.foreman.target={x:spot.x+1, y:spot.y+2.4}; demo.highlight=null; }, until:()=> !demo.foreman.target},
+      {cap:'CEO: "Every house you build brings us closer to creating a thriving cherry community." 🏘️ Follow me!', wait:0, act:()=>{ travelTo('cherry'); demo.foreman.x=2.5; demo.foreman.y=21.5; demo.foreman.target={x:spot.x+1, y:spot.y+2.4}; demo.highlight=null; }, until:()=> !demo.foreman.target},
       {cap:'🏠 Now design a house: pick a blueprint in BUILD, then click the grass to place it.', wait:1.2, act:()=>{ demoPlaceHouse(); demo.fastBuild=true; demo.highlight={tx:spot.x,ty:spot.y,w:2,h:2}; }, until:()=> demo.house && demo.house.done},
       {cap:'🧑 A customer wants a cabin. Finished houses earn coins & reputation!', wait:1.0, act:()=> spawnDemoCustomer(), until:()=> demo.house && demo.house.claimed},
       {cap:'🎮 Your turn! Chop wood in the forest, then press 🏘️ to travel here and build. Reach 1000 reputation to win!', wait:4.5, act:()=>{ travelTo('forest'); demo.foreman.x = S.player.x; demo.foreman.y = S.player.y; demo.highlight=null; }},
@@ -2016,10 +2021,27 @@ function drawForeman(){
   const c = demo.foreman;
   const px = Math.round(c.x*TILE), py = Math.round(c.y*TILE);
   const moving = !!c.target;
-  const frame = moving ? ((Math.floor(c.anim*6)%2===0) ? SPR_PLAYER.walkA : SPR_PLAYER.walkB) : SPR_PLAYER.idle;
-  ctx.fillStyle = 'rgba(20,40,15,0.3)';
-  ctx.beginPath(); ctx.ellipse(px, py+3, 8, 3, 0, 0, Math.PI*2); ctx.fill();
-  drawSprite(frame, px-12, py-30, {h:'#f2c94c', s:C.skin, e:'#2b2118', t:'#e8a33a', p:'#5a4a3a', b:'#2b2118'}, 2);
+  const bob = moving ? Math.sin(c.anim*10)*1.5 : Math.sin(c.anim*2)*0.6;
+  ctx.fillStyle = 'rgba(30,42,36,0.3)';
+  ctx.beginPath(); ctx.ellipse(px, py+3, 13, 4, 0, 0, Math.PI*2); ctx.fill();
+  if(CEO_IMG.complete && CEO_IMG.naturalWidth > 0){
+    const hgt = 74;
+    const wdt = hgt * (CEO_SRC.w/CEO_SRC.h);
+    ctx.drawImage(CEO_IMG, CEO_SRC.x, CEO_SRC.y, CEO_SRC.w, CEO_SRC.h,
+      Math.round(px - wdt/2), Math.round(py - hgt + 2 + bob), wdt, hgt);
+  } else {
+    // fallback while the portrait loads: a suited pixel figure
+    drawSprite(SPR_PLAYER.idle, px-12, py-30, {h:'#203050', s:C.skin, e:'#243231', t:'#f8f8f8', p:'#203050', b:'#101828'}, 2);
+  }
+  // CEO name plate
+  ctx.fillStyle = 'rgba(20,32,28,0.92)';
+  ctx.fillRect(px-22, py-92, 44, 14);
+  ctx.strokeStyle = 'rgba(242,201,76,0.9)'; ctx.lineWidth = 1;
+  ctx.strokeRect(px-22, py-92, 44, 14);
+  ctx.fillStyle = '#f2c94c';
+  ctx.font = 'bold 10px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('CEO', px, py-81);
 }
 function drawDemoFx(){
   drawForeman();
