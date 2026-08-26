@@ -132,6 +132,29 @@
     box-shadow:0 6px 20px #000;
   }
   #demoBar.hidden{display:none;}
+  /* CEO dialogue panel — bigger, central, with the CEO portrait */
+  #ceoDialog{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:41;
+    background:rgba(26,32,18,0.96);border:3px solid var(--gold);border-radius:8px;
+    padding:12px 18px;max-width:780px;width:calc(100% - 40px);
+    display:flex;align-items:center;gap:14px;
+    font-family:'Press Start 2P',monospace;
+    box-shadow:0 8px 28px #000;
+  }
+  #ceoDialog.hidden{display:none;}
+  #ceoPortrait{
+    width:58px;height:58px;object-fit:contain;flex:none;
+    image-rendering:pixelated;image-rendering:crisp-edges;
+    border:2px solid var(--gold);border-radius:4px;background:#00000044;
+  }
+  #ceoBody{flex:1;min-width:0;}
+  #ceoName{font-size:10px;color:var(--gold);letter-spacing:1px;margin-bottom:8px;}
+  #ceoText{font-size:13px;line-height:2;color:var(--cream);}
+  @media (max-width:900px){
+    #ceoDialog{bottom:10px;flex-direction:column;text-align:center;padding:10px 12px;}
+    #ceoPortrait{width:44px;height:44px;}
+    #ceoText{font-size:10px;line-height:1.9;}
+  }
   .modal{
     background:rgba(26,32,18,0.95);border:4px solid var(--gold);border-radius:6px;max-width:560px;width:100%;
     padding:22px;text-align:center;box-shadow:0 10px 40px #000;
@@ -285,6 +308,15 @@
 
 <!-- Demo caption bar -->
 <div id="demoBar" class="hidden"><span id="demoText"></span></div>
+
+<!-- CEO dialogue panel (Watch Intro) -->
+<div id="ceoDialog" class="hidden">
+  <img id="ceoPortrait" src="../asset.png" alt="CEO"/>
+  <div id="ceoBody">
+    <div id="ceoName">👔 CEO · Woodland Empire</div>
+    <div id="ceoText"></div>
+  </div>
+</div>
 
 <div class="footer-note">InstaBuilt · Timber Village — a tiny sustainable village builder. Progress autosaves.</div>
 <div id="errStrip" style="display:none;position:fixed;top:0;left:0;right:0;z-index:999;background:#c33;color:#fff;font:12px monospace;padding:6px 10px;"></div>
@@ -2175,6 +2207,14 @@ function findDemoTree(){
   for(let i=0;i<S.grid.length;i++) if(S.grid[i].t==='tree') return {x:i%COLS, y:Math.floor(i/COLS)};
   return {x:6,y:4};
 }
+function setDemoCaption(text){
+  // CEO lines get the big central dialogue panel; other captions keep the small bar
+  const isCEO = text.indexOf('CEO:') === 0;
+  $('demoBar').classList.toggle('hidden', isCEO);
+  $('ceoDialog').classList.toggle('hidden', !isCEO);
+  if(isCEO) $('ceoText').innerHTML = text.slice(4).trim();
+  else $('demoText').textContent = text;
+}
 function runDemo(){
   const tree = findDemoTree();
   const spot = {x:10, y:14}; // open grass in Cherry Communities
@@ -2183,17 +2223,16 @@ function runDemo(){
     foreman:{x:1.2, y:ROWS-1.4, target:null, anim:0},
     highlight:null, phaseActed:false,
     phases:[
-      {cap:'CEO: "Welcome to Woodland Empire! I\'m the CEO of the company. We build beautiful, environmentally friendly homes using one of nature\'s greatest resources: wood."', wait:8.0, act:()=>{ demo.highlight=null; }},
-      {cap:'CEO: "Wood is renewable, which means we can grow more of it. But we have to take care of the forest while we build." 🪓 Watch how the Axe chops one!', wait:0, act:()=>{ demo.highlight={tx:tree.x,ty:tree.y,w:1,h:1}; demo.foreman.target={x:tree.x+0.5, y:tree.y+1.4}; }, until:()=> !demo.foreman.target},
+      {cap:'CEO: 🌲 "Welcome to Woodland Empire! 🏢 I\'m the CEO of the company. We build beautiful, environmentally friendly homes using one of nature\'s greatest resources: wood!" 🪵', wait:8.5, act:()=>{ demo.highlight=null; }},
+      {cap:'CEO: 🪓 "Wood is renewable, which means we can grow more of it. 🌱 But we have to take care of the forest while we build." 🌳', wait:0, act:()=>{ demo.highlight={tx:tree.x,ty:tree.y,w:1,h:1}; demo.foreman.target={x:tree.x+0.5, y:tree.y+1.4}; }, until:()=> !demo.foreman.target},
       {cap:'💥 Chopped! The stump regrows by itself — and you can plant even more trees.', wait:2.6, act:()=> demoChop()},
-      {cap:'CEO: "Every house you build brings us closer to creating a thriving cherry community." 🏘️ Follow me!', wait:0, act:()=>{ travelTo('cherry'); demo.foreman.x=2.5; demo.foreman.y=21.5; demo.foreman.target={x:spot.x+1, y:spot.y+2.4}; demo.highlight=null; }, until:()=> !demo.foreman.target},
+      {cap:'CEO: 🏠 "Every house you build brings us closer to creating a thriving cherry community!" 🍒', wait:0, act:()=>{ travelTo('cherry'); demo.foreman.x=2.5; demo.foreman.y=21.5; demo.foreman.target={x:spot.x+1, y:spot.y+2.4}; demo.highlight=null; }, until:()=> !demo.foreman.target},
       {cap:'🏠 Now design a house: pick a blueprint in BUILD, then click the grass to place it.', wait:1.2, act:()=>{ demoPlaceHouse(); demo.fastBuild=true; demo.highlight={tx:spot.x,ty:spot.y,w:2,h:2}; }, until:()=> demo.house && demo.house.done},
       {cap:'🧑 A customer wants a cabin. Finished houses earn coins & reputation!', wait:1.0, act:()=> spawnDemoCustomer(), until:()=> demo.house && demo.house.claimed},
       {cap:'🎮 Your turn! Chop wood in the forest, then press 🏘️ to travel here and build. Reach 1000 reputation to win!', wait:4.5, act:()=>{ travelTo('forest'); demo.foreman.x = S.player.x; demo.foreman.y = S.player.y; demo.highlight=null; }},
     ],
   };
-  $('demoBar').classList.remove('hidden');
-  $('demoText').textContent = demo.phases[0].cap;
+  setDemoCaption(demo.phases[0].cap);
   pushMsg('🎬 Intro demo — watch how to chop and build!', 'gold');
 }
 function updateDemo(dt){
@@ -2226,7 +2265,7 @@ function updateDemo(dt){
     demo.t = 0;
     demo.phaseActed = false;
     if(demo.step >= demo.phases.length){ endDemo(); return; }
-    $('demoText').textContent = demo.phases[demo.step].cap;
+    setDemoCaption(demo.phases[demo.step].cap);
   }
 }
 function demoChop(){
@@ -2253,6 +2292,7 @@ function spawnDemoCustomer(){
 function endDemo(){
   demo = null;
   $('demoBar').classList.add('hidden');
+  $('ceoDialog').classList.add('hidden');
   pushMsg('🎮 The forest is yours! Build your village — reach 1000 reputation to win.', 'gold');
 }
 function drawForeman(){
