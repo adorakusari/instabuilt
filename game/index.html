@@ -172,6 +172,7 @@
     <div class="hud-item"><span id="hud-forecast" style="font-size:10px;">Next: —</span></div>
     <div class="hud-item"><span class="ico">🪵</span><b id="hud-wood">0</b></div>
     <div class="hud-item"><span class="ico">🟫</span><b id="hud-planks">0</b></div>
+    <div class="hud-item"><span class="ico">🍎</span><b id="hud-food">0</b></div>
     <div class="hud-item"><span class="ico">🪙</span><b id="hud-coins">0</b></div>
     <div class="hud-item"><span class="ico">⭐</span><b id="hud-rep">0</b><span style="opacity:.7" id="hud-rep-next"></span></div>
     <div class="hud-item"><span class="ico">🏅</span><span id="hud-level" class="pixel" style="font-size:10px;">Lv1</span></div>
@@ -273,6 +274,7 @@
     <p>🌱 <b>Plant</b> — click grass to plant a free sapling. Saplings grow into trees in ~8 days (rain speeds it up).</p>
     <p>🔨 <b>Hammer</b> — click a house under construction to boost it +20% for 5 wood (once per house per day).</p>
     <p>🏘️ <b>Cherry Communities</b> — chop your first tree and the <b>🏘️ travel button</b> unlocks. It takes you to an open meadow with the same graphics — <b>houses can only be built there</b>. Travel back to the forest to chop more wood.</p>
+    <p>👷 <b>Your crew</b> — 🪚 the <b>Carpenter</b> walks the village and speeds up house builds, 🌳 the <b>Forester</b> plants trees across the forest, 🧑‍🌾 the <b>Farmer</b> grows crops that are sold for coins every morning. Watch them work — they talk to each other and to you!</p>
     <p>🏠 <b>Build</b> — in Cherry Communities pick a blueprint, choose a roof color, click grass to place. Builders work automatically; weather &amp; night affect speed.</p>
     <p>🧑 <b>Customers</b> — they want specific houses. Complete them before they leave to earn coins &amp; reputation. Reach <b>1000 rep</b> to win!</p>
     <p>🌲 <b>Environment</b> — keep forest coverage above 70% for a green bonus. Below 30% and customers stop coming.</p>
@@ -415,7 +417,7 @@ function newGame(){
     day:1, phase:0, phaseT:0,
     wood:25, planks:10, coins:50, rep:0,
     weather:'sunny', nextWeather:'cloudy',
-    grid:[], zone:'forest', treesCut:0, zones:null,
+    grid:[], zone:'forest', treesCut:0, zones:null, food:0, npcs:null,
     houses:[], customers:[], custId:1,
     msgs:[], forestStart:0, daysSinceCust:0, stormMsgShown:false,
     unlocked:[1], boostUsed:0, sawing:null, spawn:null, spawnHintT:8,
@@ -423,6 +425,7 @@ function newGame(){
   genMap();
   S.zones = { forest:{grid:S.grid, player:null}, cherry:{grid:genCherryMap(), player:null} };
   S.grid = S.zones.forest.grid;
+  S.npcs = spawnNPCs();
   S.forestStart = countForest();
   S.player = {x:S.spawn.x+0.5, y:S.spawn.y+2, target:null, anim:0};
   S.pending = null;
@@ -645,7 +648,7 @@ function loadSave(){
     const zone = d.zone==='cherry' ? 'cherry' : 'forest';
     S = {day:d.day, phase:d.phase||0, phaseT:0, wood:d.wood, planks:(typeof d.planks==='number'?d.planks:10), coins:d.coins, rep:d.rep,
       weather:d.weather||'sunny', nextWeather:d.nextWeather||'cloudy', grid:zones[zone].grid,
-      zone, zones, treesCut:d.treesCut||0,
+      zone, zones, treesCut:d.treesCut||0, food:d.food||0, npcs:d.npcs||null,
       houses:d.houses||[], customers:d.customers||[], custId:d.custId||1,
       msgs:d.msgs||[], forestStart:d.forestStart||countForestFromGrid(zones.forest.grid),
       daysSinceCust:d.daysSinceCust||0, unlocked:d.unlocked||[1], stormMsgShown:false, boostUsed:0};
@@ -656,6 +659,7 @@ function loadSave(){
     S.pending = null;
     S.sawing = null;
     S.spawnHintT = 0;
+    if(!S.npcs || !S.npcs.length) S.npcs = spawnNPCs();
     return true;
   }catch(e){ return false; }
 }
@@ -1011,6 +1015,8 @@ function advanceDay(){
   S.day++;
   S.phase = 0;
   rollWeather();
+  // the farmer's harvest is sold every morning
+  if(S.food>0){ S.coins += S.food; pushMsg('🍎 The farmer sold '+S.food+' food for '+S.food+' coins!', 'good'); S.food=0; }
   // customers
   S.daysSinceCust++;
   const needCust = S.day===2 || (S.daysSinceCust>=2 && S.customers.length<maxCustomers());
@@ -1026,6 +1032,10 @@ function advanceDay(){
     } else if(cell.t==='stump'){
       cell.regrow--;
       if(cell.regrow<=0){ cell.t='sapling'; cell.grow=0; }
+    }
+    if(cell.detail==='crops'){
+      cell.crops = (cell.crops||0)+1;
+      if(cell.crops>=2) cell.ripe = true;
     }
   }
   // storm damage
@@ -1081,6 +1091,7 @@ function claimSweep(){
 function update(dt){
   if(flash>0) flash = Math.max(0, flash - dt*1.5);
   if(paused || !S) return;
+  updateNPCs(dt);
   if(demo){
     updateDemo(dt);
     updateParticles(dt);
@@ -1212,6 +1223,23 @@ function drawTree(x,y,cell){
 function drawDetail(x,y,cell){
   const px = x*TILE, py = y*TILE;
   const d = cell.detail;
+  if(d==='crops'){
+    // the farmer's field: rows of sprouts, golden when ripe
+    const ripe = cell.ripe;
+    ctx.fillStyle = '#6b4a2b';
+    ctx.fillRect(px+5, py+25, 22, 6);
+    ctx.fillStyle = '#8a5f3f';
+    ctx.fillRect(px+5, py+25, 22, 1);
+    ctx.fillStyle = ripe ? '#c9a15a' : '#5f7a3a';
+    for(let i=0;i<4;i++){
+      const cx = px+7+i*6;
+      ctx.fillRect(cx, py+19, 3, 7);
+      ctx.fillRect(cx+1, py+17, 1, 3);
+    }
+    ctx.fillStyle = ripe ? '#e0c070' : '#7e9446';
+    ctx.fillRect(px+7, py+19, 22, 1);
+    return;
+  }
   if(d==='sign'){
     // wooden village signpost with two cherries
     ctx.fillStyle = C.woodD;
@@ -1614,6 +1642,7 @@ function drawMap(){
     drawHouse(h, alpha);
   }
   for(const c of S.customers){ if((c.zone||'forest')===S.zone) drawPerson(c); }
+  for(const n of S.npcs){ if(n.zone===S.zone) drawNPC(n); }
   drawPlayer();
 }
 function drawWeather(){
@@ -1771,6 +1800,7 @@ function updateHUD(){
   $('hud-forecast').textContent = 'Next: '+WEATHERS[S.nextWeather].ico+' '+WEATHERS[S.nextWeather].name;
   $('hud-wood').textContent = S.wood;
   $('hud-planks').textContent = S.planks;
+  $('hud-food').textContent = S.food||0;
   $('hud-coins').textContent = S.coins;
   $('hud-rep').textContent = S.rep;
   const nxt = repToNext();
@@ -1820,6 +1850,215 @@ function travelTo(zone){
   sfx('travel');
   pushMsg(zone==='cherry' ? '🏘️ Welcome to Cherry Communities — your building zone!' : '🌲 Back in the forest — chop trees for wood!', 'gold');
   refreshBuildMenu(); updateHUD(); updateHint();
+}
+/* ---------- NPC crew: carpenter / forester / farmer ---------- */
+const NPC_DEFS = {
+  carpenter:{name:'Carpenter', ico:'🪚', zone:'cherry', colors:{h:'#4a3020', s:C.skin, e:'#243231', t:'#a06a4a', p:'#5a4a3a', b:'#243231'}},
+  forester: {name:'Forester',  ico:'🌳', zone:'forest', colors:{h:'#2f5a20', s:C.skin, e:'#243231', t:'#3f7d2f', p:'#4a5a2a', b:'#243231'}},
+  farmer:   {name:'Farmer',    ico:'🧑‍🌾', zone:'forest', colors:{h:'#c9a860', s:C.skin, e:'#243231', t:'#8fae57', p:'#5a4a3a', b:'#243231'}},
+};
+const NPC_LINES = {
+  carpenter:['Measure twice, cut once!','This beam will outlast us all!','Nothing beats the smell of fresh planks.','No houses to build — I\u2019ll keep the tools sharp.'],
+  forester: ['Every tree counts!','Plant today, tomorrow\u2019s forest.','A forest is a family of trees.','One tree cut, two planted.'],
+  farmer:   ['Good soil makes good food!','The village must eat!','You can\u2019t rush a good crop.','Fresh from the field!'],
+};
+function zTile(zone, x, y){
+  const g = (zone==='cherry') ? S.zones.cherry.grid : S.zones.forest.grid;
+  return inBounds(x,y) ? g[y*COLS+x] : null;
+}
+function sayNpc(n, text){ n.sayText = text; n.sayT = 3.4; }
+function maybeSay(n){ if(Math.random()<0.5) sayNpc(n, NPC_LINES[n.id][Math.floor(Math.random()*NPC_LINES[n.id].length)]); }
+function findGrassNear(sx, sy, radius){
+  for(let r=1;r<=radius;r++){
+    for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++){
+      if(Math.max(Math.abs(dx),Math.abs(dy))!==r) continue;
+      const c = zTile('forest', sx+dx, sy+dy);
+      if(c && c.t==='grass' && !c.occupied && !c.detail) return {x:sx+dx, y:sy+dy};
+    }
+  }
+  return null;
+}
+function spawnNPCs(){
+  const mk = (id)=>{
+    const def = NPC_DEFS[id];
+    let pos;
+    if(id==='carpenter') pos = {x:3.5, y:20.5};
+    else { const g = findGrassNear(S.spawn.x+1, S.spawn.y-1, 5); pos = g ? {x:g.x+0.5, y:g.y+0.5} : {x:S.spawn.x+0.5, y:S.spawn.y+2}; }
+    return {id, name:def.name, ico:def.ico, zone:def.zone, colors:def.colors, x:pos.x, y:pos.y,
+      target:null, job:null, jobT:0, restT:0, sayT:0, sayText:'', anim:Math.random()*3, facing:1};
+  };
+  return ['forester','farmer','carpenter'].map(mk);
+}
+function findForestSpot(pred){
+  const fg = (S.zones && S.zones.forest) ? S.zones.forest.grid : S.grid;
+  const cands=[];
+  for(let i=0;i<fg.length;i++){
+    const c=fg[i]; const x=i%COLS, y=Math.floor(i/COLS);
+    if(Math.abs(x-S.spawn.x)<=2 && Math.abs(y-S.spawn.y)<=2) continue; // keep the home clearing clear
+    if(pred(c,x,y)) cands.push({x,y});
+  }
+  return cands.length ? cands[Math.floor(Math.random()*cands.length)] : null;
+}
+function findCherryWander(){
+  const cg = S.zones.cherry.grid;
+  const cands=[];
+  for(let i=0;i<cg.length;i++){
+    const c=cg[i]; const x=i%COLS, y=Math.floor(i/COLS);
+    if((c.t==='grass'||c.t==='path') && !c.occupied && Math.abs(x-20)<6 && Math.abs(y-14)<5) cands.push({x,y});
+  }
+  return cands.length ? cands[Math.floor(Math.random()*cands.length)] : {x:20,y:14};
+}
+function nearestStandFor(n, tx, ty){
+  const walk=(x,y)=>{ const c=zTile(n.zone,x,y); return !!c && (c.t==='grass'||c.t==='path'||c.t==='sapling'||c.t==='stump') && !c.occupied; };
+  if(walk(tx,ty)) return {x:tx+0.5, y:ty+0.5};
+  let best=null, bd=1e9;
+  for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+    const nx=tx+dx, ny=ty+dy;
+    if(walk(nx,ny)){
+      const d=Math.hypot(nx+0.5-n.x, ny+0.5-n.y);
+      if(d<bd){ bd=d; best={x:nx+0.5, y:ny+0.5}; }
+    }
+  }
+  return best;
+}
+function nearestCarpenterHouse(n){
+  let best=null, bd=1e9;
+  for(const h of S.houses){
+    if(h.zone!=='cherry' || h.done || h.claimed) continue;
+    const bp=houseBP(h);
+    const d=Math.hypot(h.x+bp.w/2-n.x, h.y+bp.h/2-n.y);
+    if(d<bd){ bd=d; best=h; }
+  }
+  return best;
+}
+function pickNpcJob(n){
+  if(n.id==='carpenter'){
+    const house = nearestCarpenterHouse(n);
+    if(house){
+      const stand = nearestStandFor(n, house.x, house.y);
+      if(stand){ n.job={type:'build', houseId:house.id, active:false, dur:3.5}; n.target=stand; }
+      else n.restT=1.5;
+    } else {
+      const w = findCherryWander();
+      n.target = {x:w.x+0.5, y:w.y+0.5};
+      if(Math.random()<0.2) sayNpc(n, NPC_LINES.carpenter[3]);
+    }
+  } else if(n.id==='forester'){
+    const spot = findForestSpot((c)=> c.t==='grass' && !c.detail && !c.occupied);
+    if(spot){ n.job={type:'plant', x:spot.x, y:spot.y, active:false, dur:2.2}; n.target={x:spot.x+0.5, y:spot.y+0.5}; }
+    else n.restT=2;
+  } else if(n.id==='farmer'){
+    const ripe = findForestSpot((c)=> c.detail==='crops' && c.ripe);
+    if(ripe){ n.job={type:'harvest', x:ripe.x, y:ripe.y, active:false, dur:2.0}; n.target={x:ripe.x+0.5, y:ripe.y+0.5}; }
+    else {
+      const spot = findForestSpot((c)=> c.t==='grass' && !c.detail && !c.occupied);
+      if(spot){ n.job={type:'farm', x:spot.x, y:spot.y, active:false, dur:2.4}; n.target={x:spot.x+0.5, y:spot.y+0.5}; }
+      else n.restT=2;
+    }
+  }
+}
+function doNpcJobFx(n, dt){
+  if(n.zone!==S.zone) return;
+  const j=n.job;
+  if(j.type==='build'){
+    if(Math.random()<dt*6){
+      const h=S.houses.find(hh=>hh.id===j.houseId); if(!h) return;
+      const bx=h.x*TILE+Math.random()*(houseBP(h).w*TILE);
+      particles.push({x:bx, y:h.y*TILE+6, vx:(Math.random()-0.5)*40, vy:-30-Math.random()*30, life:0.5, maxLife:0.5, size:3, color:Math.random()<0.5?C.woodL:C.woodD, kind:'chip'});
+    }
+    if(Math.random()<dt*1.5) sfx('hammer');
+  } else {
+    if(Math.random()<dt*5){
+      particles.push({x:n.x*TILE+(Math.random()-0.5)*8, y:n.y*TILE+4, vx:(Math.random()-0.5)*20, vy:-8-Math.random()*10, life:0.6, maxLife:0.6, size:2, color: j.type==='harvest' ? '#e8a060' : '#8a6a4a', kind:'chip'});
+    }
+  }
+}
+function applyNpcJob(n){
+  const j=n.job; if(!j) return;
+  if(j.type==='plant'){
+    const c=zTile('forest', j.x, j.y);
+    if(c && c.t==='grass' && !c.detail && !c.occupied){
+      c.t='sapling'; c.grow=0; c.occupied=false; c.detail=null;
+      particles.push({x:j.x*TILE+16, y:j.y*TILE+24, vx:0, vy:-10, life:0.8, maxLife:0.8, size:4, color:C.canopyB, kind:'leaf'});
+      maybeSay(n);
+    }
+  } else if(j.type==='farm'){
+    const c=zTile('forest', j.x, j.y);
+    if(c && c.t==='grass' && !c.occupied && !c.detail){
+      c.detail='crops'; c.crops=0; c.ripe=false;
+      particles.push({x:j.x*TILE+16, y:j.y*TILE+26, vx:0, vy:-6, life:0.7, maxLife:0.7, size:4, color:'#c9a86a', kind:'chip'});
+    }
+  } else if(j.type==='harvest'){
+    const c=zTile('forest', j.x, j.y);
+    if(c && c.detail==='crops' && c.ripe){
+      const f=3+Math.floor(Math.random()*3);
+      S.food=(S.food||0)+f;
+      c.detail=null; c.crops=0; c.ripe=false;
+      addFloat(j.x*TILE+TILE/2, j.y*TILE+2, '+'+f+' 🍎', '#e8a060');
+      sfx('coin');
+      maybeSay(n);
+    }
+  } else if(j.type==='build'){
+    const h=S.houses.find(hh=>hh.id===j.houseId);
+    if(h && !h.done){ h.progress=Math.min(1, h.progress+0.05); maybeSay(n); }
+  }
+}
+function updateNPCs(dt){
+  if(!S || !S.npcs) return;
+  for(const n of S.npcs){
+    n.anim += dt;
+    if(n.sayT>0){ n.sayT-=dt; if(n.sayT<=0) n.sayText=''; }
+    else if(Math.random()<dt*0.04) sayNpc(n, NPC_LINES[n.id][Math.floor(Math.random()*NPC_LINES[n.id].length)]);
+    if(n.restT>0){ n.restT-=dt; continue; }
+    if(n.target){
+      const dx=n.target.x-n.x, dy=n.target.y-n.y;
+      const d=Math.hypot(dx,dy);
+      if(d>0.06){
+        const step=Math.min(d, dt*2.1);
+        n.x+=dx/d*step; n.y+=dy/d*step;
+        if(Math.abs(dx)>0.02) n.facing = dx>0?1:-1;
+      } else {
+        n.x=n.target.x; n.y=n.target.y; n.target=null;
+        if(n.job){ n.job.active=true; n.jobT=0; }
+      }
+    } else if(n.job && n.job.active){
+      n.jobT += dt;
+      doNpcJobFx(n, dt);
+      if(n.jobT >= n.job.dur){
+        applyNpcJob(n);
+        n.job=null; n.restT=1+Math.random()*2;
+      }
+    } else {
+      pickNpcJob(n);
+    }
+  }
+}
+function drawNPC(n){
+  if(!S || n.zone!==S.zone) return;
+  const px=Math.round(n.x*TILE), py=Math.round(n.y*TILE);
+  const moving=!!n.target;
+  const frame=moving ? ((Math.floor(n.anim*6)%2===0)?SPR_PLAYER.walkA:SPR_PLAYER.walkB) : SPR_PLAYER.idle;
+  ctx.fillStyle='rgba(30,42,36,0.3)';
+  ctx.beginPath(); ctx.ellipse(px, py+3, 8, 3, 0, 0, Math.PI*2); ctx.fill();
+  drawSprite(frame, px-12, py-30, n.colors, 2, n.facing<0);
+  // job icon bubble
+  ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.arc(px+10, py-34, 6, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,0.45)'; ctx.lineWidth=1; ctx.stroke();
+  ctx.font='9px monospace'; ctx.textAlign='center';
+  ctx.fillText(n.ico, px+10, py-31);
+  // speech bubble
+  if(n.sayText){
+    const tw=n.sayText.length*5+10;
+    const bx=Math.max(tw/2+4, Math.min(px, W-tw/2-4));
+    const by=py-48;
+    ctx.fillStyle='#fff'; ctx.strokeStyle='#333'; ctx.lineWidth=1;
+    ctx.fillRect(bx-tw/2, by-14, tw, 14);
+    ctx.strokeRect(bx-tw/2, by-14, tw, 14);
+    ctx.beginPath(); ctx.moveTo(bx-4, by); ctx.lineTo(bx+4, by); ctx.lineTo(bx, by+5); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#222'; ctx.font='8px monospace'; ctx.textAlign='center';
+    ctx.fillText(n.sayText, bx, by-4);
+  }
 }
 function refreshBuildMenu(){
   const grid = $('bpGrid');
@@ -2219,6 +2458,8 @@ window.__game = {
   travelTo,
   zone: ()=>S ? S.zone : null,
   treesCut: ()=>S ? (S.treesCut||0) : 0,
+  npcs: ()=>S ? S.npcs : null,
+  forceNpcJob: (id, job)=>{ const n = S && S.npcs && S.npcs.find(x=>x.id===id); if(n){ n.job=job; n.job.active=true; n.jobT=1e9; n.target=null; n.restT=0; } },
 };
 </script>
 </body>

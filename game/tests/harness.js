@@ -223,6 +223,56 @@ step(130); // ~2.1s of sawing
 check('saw turned log into planks (+' + (st.planks - pSaw0) + ')', st.sawing === null && st.planks >= pSaw0 + 7 && st.wood === wSaw0);
 check('saw left a stump', st.grid[sawIdx].t === 'stump');
 
+// --- NPC crew: forester plants, farmer harvests, carpenter boosts ---
+check('crew has 3 NPCs', st.npcs && st.npcs.length === 3);
+check('crew has the right jobs', !!(st.npcs.find(n => n.id === 'forester') && st.npcs.find(n => n.id === 'farmer') && st.npcs.find(n => n.id === 'carpenter')));
+
+// forester plants a sapling
+const plantSpot = (() => {
+  for (let i = 0; i < st.grid.length; i++) {
+    const x = i % COLS, y = Math.floor(i / COLS);
+    if (Math.abs(x - st.spawn.x) > 2 && Math.abs(y - st.spawn.y) > 2 && st.grid[i].t === 'grass' && !st.grid[i].detail) return { x, y, i };
+  }
+  return null;
+})();
+check('forester finds a planting spot', !!plantSpot);
+g.forceNpcJob('forester', { type: 'plant', x: plantSpot.x, y: plantSpot.y, active: true, dur: 1 });
+step(1);
+check('forester planted a sapling', st.grid[plantSpot.i].t === 'sapling');
+
+// farmer harvests ripe crops -> food
+const cropSpot = (() => {
+  for (let i = 0; i < st.grid.length; i++) {
+    const x = i % COLS, y = Math.floor(i / COLS);
+    if (Math.abs(x - st.spawn.x) > 2 && Math.abs(y - st.spawn.y) > 2 && st.grid[i].t === 'grass' && st.grid[i].detail !== 'crops') return { x, y, i };
+  }
+  return null;
+})();
+st.grid[cropSpot.i].detail = 'crops'; st.grid[cropSpot.i].ripe = true; st.grid[cropSpot.i].crops = 2;
+const food0 = st.food;
+g.forceNpcJob('farmer', { type: 'harvest', x: cropSpot.x, y: cropSpot.y, active: true, dur: 1 });
+step(1);
+check('farmer harvested food (' + food0 + ' -> ' + st.food + ')', st.food > food0);
+check('harvested tile is clean grass again', st.grid[cropSpot.i].detail === null);
+
+// crops ripen over two days
+const farmIdx = (() => { for (let i = 0; i < st.grid.length; i++) if (st.grid[i].t === 'grass' && !st.grid[i].detail && Math.abs(i % COLS - st.spawn.x) > 2) return i; return -1; })();
+check('found a tile for crops', farmIdx >= 0);
+st.grid[farmIdx].detail = 'crops'; st.grid[farmIdx].crops = 0; st.grid[farmIdx].ripe = false;
+g.advanceDay(); g.advanceDay();
+check('crops ripen after two days', st.grid[farmIdx].ripe === true);
+
+// the farmer's food is sold each morning
+st.food = 10; const coinsBeforeSale = st.coins;
+g.advanceDay();
+check('food sold for coins (' + coinsBeforeSale + ' -> ' + st.coins + ')', st.coins === coinsBeforeSale + 10 && st.food === 0);
+
+// carpenter boosts a house under construction
+const hb = st.houses[0]; hb.progress = 0.3; hb.done = false; hb.claimed = false; hb.boostDay = 0;
+g.forceNpcJob('carpenter', { type: 'build', houseId: hb.id, active: true, dur: 1 });
+step(1);
+check('carpenter boosted the build (' + hb.progress.toFixed(2) + ')', hb.progress > 0.3);
+
 // --- player walks around the forest ---
 g.setTool('axe');
 const px0 = st.player.x, py0 = st.player.y;
@@ -274,6 +324,7 @@ if (stumpIdx2 >= 0) {
 g.setState(Object.assign({}, st, { rep: 800 }));
 st = g.S(); // re-grab: setState replaced the state object
 st.wood = 500;
+st.weather = 'sunny'; st.nextWeather = 'cloudy'; // deterministic: storms halt building
 // place a lodge as a nearly-finished house (completes during the next update)
 st.houses.push({ id: 999, bp: 'lodge', x: 10, y: 6, progress: 0.99, roof: 'red', done: false, claimed: false, boostDay: 0 });
 st.customers.push({ id: 100, bp: 'lodge', daysLeft: 5, x: 8, y: ROWS - 1, state: 'wait', t: 0, shirt: '#ff0000', anim: 0 });
