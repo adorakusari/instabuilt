@@ -95,6 +95,7 @@ let st = g.S();
 check('starts with 25 wood', st.wood === 25);
 check('starts with 10 planks', st.planks === 10);
 check('starts with 50 coins', st.coins === 50);
+check('new game starts in the forest zone', g.zone() === 'forest');
 check('map generated ' + (COLS * ROWS) + ' tiles', st.grid.length === COLS * ROWS);
 const treeCount = st.grid.filter(c => c.t === 'tree').length;
 check('forest has trees (' + treeCount + ')', treeCount > 40);
@@ -120,6 +121,7 @@ const woodBefore = st.wood;
 g.actNow(tx, ty);
 check('chop increases wood (' + woodBefore + ' -> ' + st.wood + ')', st.wood > woodBefore);
 check('tree became stump', st.grid[treeIdx].t === 'stump');
+check('cherry travel unlocked after first chop', g.treesCut() >= 1);
 
 // --- plant a sapling (direct action) ---
 g.setTool('plant');
@@ -128,28 +130,45 @@ const gx = grassIdx % COLS, gy = Math.floor(grassIdx / COLS);
 g.actNow(gx, gy);
 check('planted sapling', st.grid[grassIdx].t === 'sapling');
 
-// --- place a cabin blueprint (direct action) ---
+// --- building is ONLY allowed in Cherry Communities ---
 g.selectBP('cabin');
 let hx = -1, hy = -1;
 outer: for (let y = 1; y < ROWS - 2; y++) for (let x = 0; x < COLS - 1; x++) {
   const i = y * COLS + x;
   if ([st.grid[i], st.grid[i + 1], st.grid[i + COLS], st.grid[i + COLS + 1]].every(c => c.t === 'grass')) { hx = x; hy = y; break outer; }
 }
-check('found 2x2 build spot', hx >= 0);
+check('found 2x2 grass spot in the forest', hx >= 0);
+const woodDeny0 = st.wood, planksDeny0 = st.planks;
+g.actNow(hx, hy);
+check('cannot build in the forest zone', st.houses.length === 0 && st.wood === woodDeny0 && st.planks === planksDeny0);
+g.selectBP(null);
+
+// --- travel to Cherry Communities: open grass meadow, same size ---
+g.travelTo('cherry');
+st = g.S();
+check('traveled to cherry zone', g.zone() === 'cherry');
+check('cherry grid is open grass/roads only', st.grid.every(c => c.t === 'grass' || c.t === 'path'));
+check('cherry has no trees or water', !st.grid.some(c => c.t === 'water' || c.t === 'tree' || c.t === 'treeBig' || c.t === 'treePine' || c.t === 'treeRed' || c.t === 'treeDead'));
+check('cherry map is full size (' + st.grid.length + ' tiles)', st.grid.length === COLS * ROWS);
+const cherryGrass = st.grid.filter(c => c.t === 'grass').length;
+check('cherry is mostly open grass (' + cherryGrass + ' tiles)', cherryGrass > COLS * ROWS * 0.85);
+check('cherry entrance signpost', st.grid[21 * COLS + 2].detail === 'sign');
+
+// --- place a cabin in Cherry Communities (direct action) ---
+hx = 10; hy = 14;
 const w0 = st.wood, p0 = st.planks;
+g.selectBP('cabin');
 g.actNow(hx, hy);
 check('blueprint costs 15 wood + 10 planks (' + w0 + '->' + st.wood + ', ' + p0 + '->' + st.planks + ')', st.wood === w0 - 15 && st.planks === p0 - 10);
-check('house placed', st.houses.length === 1 && st.houses[0].progress === 0 && st.houses[0].bp === 'cabin');
+check('house placed in cherry', st.houses.length === 1 && st.houses[0].progress === 0 && st.houses[0].bp === 'cabin' && st.houses[0].zone === 'cherry');
 check('house tiles occupied', st.grid[hy * COLS + hx].t === 'house');
 
-// --- blueprint cannot be placed on non-grass ---
+// --- blueprint cannot be placed on the road ---
 g.selectBP('cottage');
 const housesBefore = st.houses.length;
-const pondIdx = st.grid.findIndex(c => c.t === 'water');
-g.actNow(pondIdx % COLS, Math.floor(pondIdx / COLS)); // pond
-const someTreeIdx = st.grid.findIndex(c => c.t === 'tree');
-g.actNow(someTreeIdx % COLS, Math.floor(someTreeIdx / COLS)); // tree
-check('no house on non-grass', st.houses.length === housesBefore);
+const pathIdx = st.grid.findIndex(c => c.t === 'path');
+g.actNow(pathIdx % COLS, Math.floor(pathIdx / COLS)); // road
+check('no house on the road', st.houses.length === housesBefore);
 g.selectBP(null);
 
 // --- construction progresses over time ---
@@ -158,7 +177,7 @@ check('construction advanced (' + st.houses[0].progress.toFixed(2) + ')', st.hou
 
 // --- completion + customer claims ---
 st.houses[0].progress = 1;
-st.customers.push({ id: 99, bp: 'cabin', daysLeft: 5, x: 5, y: ROWS - 1, state: 'wait', t: 0, shirt: '#ffffff', anim: 0 });
+st.customers.push({ id: 99, bp: 'cabin', daysLeft: 5, x: 5, y: ROWS - 1, state: 'wait', t: 0, shirt: '#ffffff', anim: 0, zone: 'cherry' });
 const rep0 = st.rep, coins0 = st.coins;
 step(2);
 check('house completed & claimed', st.houses[0].done === true && st.houses[0].claimed === true);
@@ -180,6 +199,13 @@ g.setTool('hammer');
 g.actNow(hx, hy);
 check('hammer boost +20%', Math.abs(st.houses[0].progress - 0.5) < 0.001);
 check('boost costs 5 wood', st.wood === 95);
+
+// --- travel back to the forest; the grid is preserved exactly ---
+const forestTreesBefore = st.zones.forest.grid.filter(c => c.t === 'tree').length;
+g.travelTo('forest');
+st = g.S();
+check('travel back to the forest', g.zone() === 'forest');
+check('forest grid preserved after round trip', st.grid.filter(c => c.t === 'tree').length === forestTreesBefore);
 
 // --- saw tool: turns the log into planks (wood stays untouched) ---
 const sawIdx = st.grid.findIndex(c => c.t === 'tree');
@@ -266,7 +292,7 @@ check('demo earned reputation', g.S().rep > 0);
 check('day did not advance during demo', g.S().day === 1);
 // start again: still straight into the forest, no demo
 g.startGame();
-check('start after demo also goes straight to forest', g.demo() === null);
+check('start after demo also goes straight to forest', g.demo() === null && g.zone() === 'forest');
 
 console.log('\nRESULT: ' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

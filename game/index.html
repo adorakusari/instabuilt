@@ -41,6 +41,17 @@
   #phaseLbl{font-size:11px;}
   #btn-mute,#btn-pause,#btn-help{background:var(--panel-l);border:2px solid var(--line);color:var(--cream);font-size:14px;width:34px;height:30px;cursor:pointer;border-radius:3px;}
   #btn-mute:hover,#btn-pause:hover,#btn-help:hover{filter:brightness(1.2);}
+  #btn-cherry{
+    display:flex;align-items:center;gap:6px;
+    background:var(--panel-l);border:2px solid var(--gold);border-radius:3px;
+    color:var(--cream);font-size:11px;font-weight:700;padding:6px 10px;cursor:pointer;
+    box-shadow:0 0 8px #f2c94c44;
+  }
+  #btn-cherry:hover{filter:brightness(1.15);}
+  #btn-cherry.locked{border-color:var(--line);box-shadow:none;opacity:.5;cursor:not-allowed;}
+  #btn-cherry.locked:hover{filter:none;}
+  #btn-cherry.pulse{animation:cherryPulse 1.6s ease-in-out infinite;}
+  @keyframes cherryPulse{0%,100%{box-shadow:0 0 4px #f2c94c33;}50%{box-shadow:0 0 14px #f2c94c99;}}
   canvas#gameCanvas{
     position:fixed;inset:0;width:100vw;height:100vh;
     image-rendering:pixelated;image-rendering:crisp-edges;
@@ -164,8 +175,12 @@
     <div class="hud-item"><span class="ico">🪙</span><b id="hud-coins">0</b></div>
     <div class="hud-item"><span class="ico">⭐</span><b id="hud-rep">0</b><span style="opacity:.7" id="hud-rep-next"></span></div>
     <div class="hud-item"><span class="ico">🏅</span><span id="hud-level" class="pixel" style="font-size:10px;">Lv1</span></div>
+    <div class="hud-item"><span id="hud-zone" class="pixel" style="font-size:9px;">🌲 Forest</span></div>
     <div class="hud-item" id="hud-env"><span style="font-size:10px;">🌲 Environment</span><div id="envBar"><div id="envFill"></div></div></div>
     <div class="hud-item"><span class="ico" id="phaseIco">🌅</span><span id="phaseLbl">Morning</span></div>
+    <button id="btn-cherry" class="locked" title="Chop a tree to unlock Cherry Communities">
+      <span class="ico">🏘️</span><span id="cherryLbl">Cherry Communities</span>
+    </button>
     <div style="margin-left:auto;display:flex;gap:4px;">
       <button id="btn-help" title="How to play">❓</button>
       <button id="btn-mute" title="Sound on/off">🔊</button>
@@ -190,6 +205,7 @@
         <span class="t-ico">🔨</span><span><span class="t-name">Hammer</span><span class="t-desc">Speed up a build (5 wood)</span></span>
       </button>
       <div class="panel-title" style="margin-top:4px;">BUILD</div>
+      <div id="buildLockNote" style="display:none;font-size:10px;opacity:.9;line-height:1.5;padding:4px 2px;">🔒 Houses are only built in <b>Cherry Communities</b> — press the 🏘️ travel button in the top bar!</div>
       <div id="variantRow"><span style="opacity:.8">Roof:</span></div>
       <div class="bp-grid" id="bpGrid"></div>
     </div>
@@ -256,7 +272,8 @@
     <p>🪚 <b>Saw</b> — click a tree: you saw the log into <b>planks</b> (+8–13 🟫) over ~2s. Houses need <b>wood + planks</b>.</p>
     <p>🌱 <b>Plant</b> — click grass to plant a free sapling. Saplings grow into trees in ~8 days (rain speeds it up).</p>
     <p>🔨 <b>Hammer</b> — click a house under construction to boost it +20% for 5 wood (once per house per day).</p>
-    <p>🏠 <b>Build</b> — pick a blueprint, choose a roof color, click grass to place. Builders work automatically; weather &amp; night affect speed.</p>
+    <p>🏘️ <b>Cherry Communities</b> — chop your first tree and the <b>🏘️ travel button</b> unlocks. It takes you to an open meadow with the same graphics — <b>houses can only be built there</b>. Travel back to the forest to chop more wood.</p>
+    <p>🏠 <b>Build</b> — in Cherry Communities pick a blueprint, choose a roof color, click grass to place. Builders work automatically; weather &amp; night affect speed.</p>
     <p>🧑 <b>Customers</b> — they want specific houses. Complete them before they leave to earn coins &amp; reputation. Reach <b>1000 rep</b> to win!</p>
     <p>🌲 <b>Environment</b> — keep forest coverage above 70% for a green bonus. Below 30% and customers stop coming.</p>
     <p>⛈️ <b>Weather</b> — rain grows trees faster, storms halt building and can damage work in progress.</p>
@@ -372,6 +389,7 @@ let particles = [], floaties = [], msgQueue = [];
 let hover = null;          // {tx,ty}
 let lastT = 0, acc = 0, saveTimer = 0;
 let shake = 0;             // screen shake (storm)
+let flash = 0;             // white flash on zone travel
 let playerLevel = 1;
 
 const canvas = document.getElementById('gameCanvas');
@@ -397,11 +415,14 @@ function newGame(){
     day:1, phase:0, phaseT:0,
     wood:25, planks:10, coins:50, rep:0,
     weather:'sunny', nextWeather:'cloudy',
-    grid:[], houses:[], customers:[], custId:1,
+    grid:[], zone:'forest', treesCut:0, zones:null,
+    houses:[], customers:[], custId:1,
     msgs:[], forestStart:0, daysSinceCust:0, stormMsgShown:false,
     unlocked:[1], boostUsed:0, sawing:null, spawn:null, spawnHintT:8,
   };
   genMap();
+  S.zones = { forest:{grid:S.grid, player:null}, cherry:{grid:genCherryMap(), player:null} };
+  S.grid = S.zones.forest.grid;
   S.forestStart = countForest();
   S.player = {x:S.spawn.x+0.5, y:S.spawn.y+2, target:null, anim:0};
   S.pending = null;
@@ -549,6 +570,35 @@ function genMap(){
   }
   S.spawn = {x:cx, y:cy};
 }
+function genCherryMap(){
+  // Cherry Communities: an open, empty meadow with the SAME graphics as the
+  // forest — just grass, a dirt road in from the south gate, and a few flowers.
+  const grid = [];
+  for(let y=0;y<ROWS;y++){
+    for(let x=0;x<COLS;x++){
+      grid.push({t:'grass', grow:0, regrow:0, occupied:false, detail:null, sz:1});
+    }
+  }
+  const at = (x,y)=> grid[y*COLS+x];
+  // entry road along the bottom edge + a short connector up into the meadow
+  for(let x=0;x<COLS;x++){ const c=at(x,21); c.t='path'; }
+  for(let y=15;y<=21;y++){ const c=at(20,y); c.t='path'; }
+  // village signpost at the entrance
+  const sign = at(2,21); sign.detail='sign';
+  // sparse meadow decoration so it matches the forest art style (but stays open)
+  for(let y=0;y<ROWS;y++){
+    for(let x=0;x<COLS;x++){
+      const c = at(x,y);
+      if(c.t!=='grass' || c.detail) continue;
+      const d = rnd2(x*17+3, y*19+11);
+      if(d<0.05) c.detail='flower';
+      else if(d<0.09) c.detail='tuft';
+      else if(d<0.12) c.detail='bush';
+      else if(d<0.15) c.detail='berries';
+    }
+  }
+  return grid;
+}
 function isMatureTree(cell){
   return !!cell && (cell.t==='tree'||cell.t==='treeBig'||cell.t==='treePine'||cell.t==='treeRed'||cell.t==='treeDead');
 }
@@ -560,8 +610,9 @@ function treeYield(cell, x, y){
   return 5 + r;                           // 5-7
 }
 function countForest(){
+  const fg = (S.zones && S.zones.forest) ? S.zones.forest.grid : S.grid;
   let c=0;
-  for(const cell of S.grid){ if(isMatureTree(cell)) c++; else if(cell.t==='sapling') c+=0.5; }
+  for(const cell of fg){ if(isMatureTree(cell)) c++; else if(cell.t==='sapling') c+=0.5; }
   return c;
 }
 function envPercent(){
@@ -571,10 +622,12 @@ function envPercent(){
 
 function saveGame(){
   try{
+    if(S.zones && S.player){ S.zones[S.zone].player = {x:S.player.x, y:S.player.y, facing:S.player.facing||1}; }
     const d = {day:S.day, phase:S.phase, wood:S.wood, planks:S.planks, coins:S.coins, rep:S.rep,
       weather:S.weather, nextWeather:S.nextWeather, grid:S.grid, houses:S.houses,
       customers:S.customers, custId:S.custId, forestStart:S.forestStart,
-      daysSinceCust:S.daysSinceCust, unlocked:S.unlocked, msgs:S.msgs.slice(0,6)};
+      daysSinceCust:S.daysSinceCust, unlocked:S.unlocked, msgs:S.msgs.slice(0,6),
+      zone:S.zone, zones:S.zones, treesCut:S.treesCut||0};
     localStorage.setItem(SAVE_KEY, JSON.stringify(d));
   }catch(e){ /* ignore */ }
 }
@@ -584,10 +637,15 @@ function loadSave(){
     if(!raw) return false;
     const d = JSON.parse(raw);
     if(!d || !d.grid || d.grid.length!==COLS*ROWS) return false;
+    const zones = (d.zones && d.zones.forest && d.zones.cherry && d.zones.forest.grid.length===COLS*ROWS && d.zones.cherry.grid.length===COLS*ROWS)
+      ? d.zones
+      : { forest:{grid:d.grid, player:d.player||null}, cherry:{grid:genCherryMap(), player:null} };
+    const zone = d.zone==='cherry' ? 'cherry' : 'forest';
     S = {day:d.day, phase:d.phase||0, phaseT:0, wood:d.wood, planks:(typeof d.planks==='number'?d.planks:10), coins:d.coins, rep:d.rep,
-      weather:d.weather||'sunny', nextWeather:d.nextWeather||'cloudy', grid:d.grid,
+      weather:d.weather||'sunny', nextWeather:d.nextWeather||'cloudy', grid:zones[zone].grid,
+      zone, zones, treesCut:d.treesCut||0,
       houses:d.houses||[], customers:d.customers||[], custId:d.custId||1,
-      msgs:d.msgs||[], forestStart:d.forestStart||countForestFromGrid(d.grid),
+      msgs:d.msgs||[], forestStart:d.forestStart||countForestFromGrid(zones.forest.grid),
       daysSinceCust:d.daysSinceCust||0, unlocked:d.unlocked||[1], stormMsgShown:false, boostUsed:0};
     playerLevel = levelFromRep();
     winShown = playerLevel>=5;
@@ -634,6 +692,7 @@ function chopTree(x,y){
   if(!cell || !isMatureTree(cell)) return;
   const w = treeYield(cell, x, y);
   S.wood += w;
+  S.treesCut = (S.treesCut||0) + 1;
   setTile(x,y,'stump',{regrow:5, detail:null});
   cell.occupied=false;
   addFloat(x*TILE+TILE/2, y*TILE+6, '+'+w+' 🪵', C.woodL);
@@ -646,6 +705,7 @@ function chopTree(x,y){
   checkEnv();
 }
 function plantSapling(x,y){
+  if(S.zone!=='forest'){ pushMsg('🌱 Saplings grow in the forest — plant them there.', null, true); sfx('deny'); return; }
   if(!isGrass(x,y)) return;
   setTile(x,y,'sapling',{grow:0, detail:null});
   addFloat(x*TILE+TILE/2, y*TILE+6, '🌱', C.canopyB);
@@ -654,6 +714,11 @@ function plantSapling(x,y){
   pushMsg('Planted a sapling. It becomes a tree in ~8 days.', null, true);
 }
 function tryPlaceBlueprint(bp, x, y){
+  if(S.zone!=='cherry'){
+    pushMsg('🏘️ Houses can only be built in Cherry Communities — press the 🏘️ travel button!', 'bad');
+    sfx('deny');
+    return false;
+  }
   // area check
   for(let oy=0;oy<bp.h;oy++){
     for(let ox=0;ox<bp.w;ox++){
@@ -677,7 +742,7 @@ function tryPlaceBlueprint(bp, x, y){
       c.houseId=id;
     }
   }
-  S.houses.push({id, bp:bp.id, x, y, progress:0, roof:roof.id, done:false, claimed:false, boostDay:0, variant:Math.floor(rnd2(x,y)*SHIRTS.length)});
+  S.houses.push({id, bp:bp.id, x, y, progress:0, roof:roof.id, done:false, claimed:false, boostDay:0, zone:'cherry', variant:Math.floor(rnd2(x,y)*SHIRTS.length)});
   addFloat(x*TILE+(bp.w*TILE)/2, y*TILE-6, bp.name+' placed!', C.cream);
   sfx('place');
   pushMsg('🏗️ '+bp.name+' blueprint placed. Builders get to work!', null, true);
@@ -711,6 +776,7 @@ function tickSawing(dt){
     if(cell && isMatureTree(cell)){
       const p = treeYield(cell, sw.x, sw.y) + 3; // the saw turns the log into planks
       S.planks += p;
+      S.treesCut = (S.treesCut||0) + 1;
       setTile(sw.x, sw.y, 'stump', {regrow:5, detail:null});
       addFloat(sw.x*TILE+TILE/2, sw.y*TILE+6, '+'+p+' 🟫 planks', C.woodL);
       for(let i=0;i<10;i++){
@@ -879,7 +945,7 @@ function spawnCustomer(){
   const bp = pool[Math.floor(Math.random()*pool.length)];
   // if an empty matching house exists, they take it immediately
   const empty = S.houses.find(h=>h.done && !h.claimed && h.bp===bp.id);
-  const c = {id:S.custId++, bp:bp.id, daysLeft:5, x:-1, y:ROWS-1, state: empty?'claim':'enter', t:0,
+  const c = {id:S.custId++, bp:bp.id, daysLeft:5, x:-1, y:ROWS-1, state: empty?'claim':'enter', t:0, zone:'cherry',
     shirt:SHIRTS[Math.floor(Math.random()*SHIRTS.length)], anim:0, targetX:4+Math.random()*3};
   S.customers.push(c);
   if(empty){ claimHouse(empty, c); }
@@ -947,18 +1013,17 @@ function advanceDay(){
   S.daysSinceCust++;
   const needCust = S.day===2 || (S.daysSinceCust>=2 && S.customers.length<maxCustomers());
   if(needCust){ spawnCustomer(); S.daysSinceCust=0; }
-  // growth
-  for(let y=0;y<ROWS;y++){
-    for(let x=0;x<COLS;x++){
-      const cell = tile(x,y);
-      if(cell.t==='sapling'){
-        const g = WEATHERS[S.weather].growth;
-        cell.grow += g;
-        if(cell.grow>=8){ setTile(x,y,'tree'); cell.occupied=false; }
-      } else if(cell.t==='stump'){
-        cell.regrow--;
-        if(cell.regrow<=0) setTile(x,y,'sapling',{grow:0});
-      }
+  // growth (trees always live in the forest zone, wherever the player is)
+  const fg = (S.zones && S.zones.forest) ? S.zones.forest.grid : S.grid;
+  for(let i=0;i<fg.length;i++){
+    const cell = fg[i];
+    if(cell.t==='sapling'){
+      const g = WEATHERS[S.weather].growth;
+      cell.grow += g;
+      if(cell.grow>=8){ cell.t='tree'; cell.occupied=false; }
+    } else if(cell.t==='stump'){
+      cell.regrow--;
+      if(cell.regrow<=0){ cell.t='sapling'; cell.grow=0; }
     }
   }
   // storm damage
@@ -1012,6 +1077,7 @@ function claimSweep(){
   }
 }
 function update(dt){
+  if(flash>0) flash = Math.max(0, flash - dt*1.5);
   if(paused || !S) return;
   if(demo){
     updateDemo(dt);
@@ -1144,6 +1210,27 @@ function drawTree(x,y,cell){
 function drawDetail(x,y,cell){
   const px = x*TILE, py = y*TILE;
   const d = cell.detail;
+  if(d==='sign'){
+    // wooden village signpost with two cherries
+    ctx.fillStyle = C.woodD;
+    ctx.fillRect(px+12, py+18, 3, 12);
+    ctx.fillRect(px+18, py+18, 3, 12);
+    ctx.fillStyle = C.wood;
+    ctx.fillRect(px+7, py+10, 19, 9);
+    ctx.fillStyle = C.woodL;
+    ctx.fillRect(px+7, py+10, 19, 2);
+    ctx.fillStyle = '#6b4a2b';
+    ctx.font = 'bold 7px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('CHERRY', px+16, py+17);
+    ctx.fillStyle = '#c8342a';
+    ctx.fillRect(px+9, py+13, 3, 3);
+    ctx.fillRect(px+20, py+12, 3, 3);
+    ctx.fillStyle = '#63ab3f';
+    ctx.fillRect(px+10, py+12, 1, 1);
+    ctx.fillRect(px+21, py+11, 1, 2);
+    return;
+  }
   if(d==='campfire'){
     ctx.fillStyle = C.bark;
     ctx.fillRect(px+11, py+23, 3, 4);
@@ -1511,10 +1598,11 @@ function drawMap(){
     }
   }
   for(const h of S.houses){
+    if((h.zone||'forest')!==S.zone) continue;
     const alpha = h.done ? 1 : 0.85;
     drawHouse(h, alpha);
   }
-  for(const c of S.customers) drawPerson(c);
+  for(const c of S.customers){ if((c.zone||'forest')===S.zone) drawPerson(c); }
   drawPlayer();
 }
 function drawWeather(){
@@ -1646,6 +1734,10 @@ function render(){
   ctx.restore();
   drawWeather();  // screen-space overlays: rain, night, storm
   drawAtmosphere();
+  if(flash>0){
+    ctx.fillStyle = 'rgba(255,255,255,'+(flash*0.8).toFixed(2)+')';
+    ctx.fillRect(0,0,VW,VH);
+  }
 }
 
 /* ---------- HUD / UI ---------- */
@@ -1679,10 +1771,52 @@ function updateHUD(){
   const fill = $('envFill');
   fill.style.width = e+'%';
   fill.className = e<30 ? 'bad' : e<70 ? 'warn' : '';
+  updateTravelBtn();
+}
+/* ---------- zones: forest (wood) <-> Cherry Communities (building) ---------- */
+const ZONE_NAMES = {forest:'the forest', cherry:'Cherry Communities'};
+function updateTravelBtn(){
+  if(!S) return;
+  const btn = $('btn-cherry');
+  const unlocked = (S.treesCut||0) > 0;
+  const wasUnlocked = !!btn._unlocked;
+  btn._unlocked = unlocked;
+  btn.classList.toggle('locked', !unlocked);
+  btn.classList.toggle('pulse', unlocked);
+  const here = S.zone==='cherry';
+  $('cherryLbl').textContent = here ? 'Back to Forest' : 'Cherry Communities';
+  btn.title = unlocked ? (here ? 'Return to the forest to chop wood' : 'Travel to Cherry Communities — build houses here')
+                       : 'Chop a tree to unlock Cherry Communities';
+  $('hud-zone').textContent = here ? '🏘️ Cherry' : '🌲 Forest';
+  if(unlocked && !wasUnlocked && !S._cherryMsg){
+    S._cherryMsg = true;
+    pushMsg('🔓 Cherry Communities unlocked! Press the 🏘️ button to travel there and build houses.', 'gold');
+  }
+}
+function travelTo(zone){
+  if(!S || !S.zones || !S.zones[zone] || zone===S.zone) return;
+  if(S.player) S.zones[S.zone].player = {x:S.player.x, y:S.player.y, facing:S.player.facing||1};
+  S.grid = S.zones[zone].grid;
+  S.zone = zone;
+  const zp = S.zones[zone].player || (zone==='cherry'
+    ? {x:3.5, y:21.5, facing:1}                        // Cherry gate on the south road
+    : {x:S.spawn.x+0.5, y:S.spawn.y+2, facing:1});     // back at the campfire
+  S.player = {x:zp.x, y:zp.y, target:null, anim:0, facing:zp.facing||1};
+  S.pending = null; S.sawing = null; selBP = null;
+  cam.x = Math.max(0, Math.min(W-VW, S.player.x*TILE - VW/2));
+  cam.y = Math.max(0, Math.min(H-VH, S.player.y*TILE - VH/2));
+  flash = 0.45;
+  sfx('travel');
+  pushMsg(zone==='cherry' ? '🏘️ Welcome to Cherry Communities — your building zone!' : '🌲 Back in the forest — chop trees for wood!', 'gold');
+  refreshBuildMenu(); updateHUD(); updateHint();
 }
 function refreshBuildMenu(){
   const grid = $('bpGrid');
   grid.innerHTML = '';
+  const inVillage = S && S.zone==='cherry';
+  $('buildLockNote').style.display = inVillage ? 'none' : 'block';
+  $('variantRow').style.display = inVillage ? '' : 'none';
+  if(!inVillage) return;
   for(const bp of BLUEPRINTS){
     const unlocked = bp.unlockLv<=playerLevel;
     const b = document.createElement('button');
@@ -1722,9 +1856,12 @@ function refreshCustPanel(){
   }).join('');
 }
 function updateHint(){
+  if(!S) return;
   if(selBP){
     const bp = BLUEPRINTS.find(b=>b.id===selBP);
     $('hintBar').innerHTML = '🏠 Building: <b>'+bp.name+'</b> ('+bp.wood+' 🪵 + '+bp.planks+' 🟫) — click grass to place, <b>Esc</b> to cancel.';
+  } else if(S.zone==='cherry'){
+    $('hintBar').innerHTML = '🏘️ <b>Cherry Communities</b> — your building zone! Pick a house in <b>BUILD</b> &amp; click the grass · use the 🌲 button to return to the forest for wood.';
   } else if(tool==='axe'){
     $('hintBar').innerHTML = '🧭 Click a spot or <b>WASD/arrows</b> to walk · 🪓 click a <b>tree</b> to walk over &amp; chop for wood (logs) · 🪚 saw turns logs into planks · pick a house in <b>BUILD</b>!';
   } else if(tool==='saw'){
@@ -1783,30 +1920,21 @@ function findDemoTree(){
   for(let i=0;i<S.grid.length;i++) if(S.grid[i].t==='tree') return {x:i%COLS, y:Math.floor(i/COLS)};
   return {x:6,y:4};
 }
-function findDemoSpot(){
-  for(const y of [10,9,11,8,12]) for(let x=13;x<22;x++){
-    if(isBuildable(x,y)&&isBuildable(x+1,y)&&isBuildable(x,y+1)&&isBuildable(x+1,y+1)) return {x,y};
-  }
-  for(let y=2;y<14;y++) for(let x=0;x<23;x++){
-    if(isBuildable(x,y)&&isBuildable(x+1,y)&&isBuildable(x,y+1)&&isBuildable(x+1,y+1)) return {x,y};
-  }
-  return {x:14,y:9};
-}
 function runDemo(){
   const tree = findDemoTree();
-  const spot = findDemoSpot();
+  const spot = {x:10, y:14}; // open grass in Cherry Communities
   demo = {
     step:0, t:0, tree, spot, house:null, fastBuild:false,
     foreman:{x:1.2, y:ROWS-1.4, target:null, anim:0},
     highlight:null, phaseActed:false,
     phases:[
-      {cap:'🌲 Welcome, builder! This is your forest plot. Watch the foreman demo…', wait:3.2, act:()=>{ demo.highlight=null; }},
+      {cap:'🌲 Welcome, builder! This is your forest plot — chop trees here to collect wood.', wait:3.0, act:()=>{ demo.highlight=null; }},
       {cap:'🪓 Mature trees give 5–7 wood. Watch how the Axe chops one!', wait:0, act:()=>{ demo.highlight={tx:tree.x,ty:tree.y,w:1,h:1}; demo.foreman.target={x:tree.x+0.5, y:tree.y+1.4}; }, until:()=> !demo.foreman.target},
-      {cap:'💥 Chopped! The stump regrows by itself — and you can plant even more trees.', wait:2.8, act:()=> demoChop()},
-      {cap:'🏠 Now design a house: pick a blueprint in BUILD, then click the grass to place it.', wait:0, act:()=>{ demo.highlight={tx:spot.x,ty:spot.y,w:2,h:2}; demo.foreman.target={x:spot.x+1, y:spot.y+2.6}; }, until:()=> !demo.foreman.target},
-      {cap:'🏗️ Blueprint placed! Builders work automatically — weather & night change the pace.', wait:1.2, act:()=>{ demoPlaceHouse(); demo.fastBuild=true; }, until:()=> demo.house && demo.house.done},
+      {cap:'💥 Chopped! The stump regrows by itself — and you can plant even more trees.', wait:2.6, act:()=> demoChop()},
+      {cap:'🏘️ Houses are built in Cherry Communities — your own open building zone. Follow!', wait:0, act:()=>{ travelTo('cherry'); demo.foreman.x=2.5; demo.foreman.y=21.5; demo.foreman.target={x:spot.x+1, y:spot.y+2.4}; demo.highlight=null; }, until:()=> !demo.foreman.target},
+      {cap:'🏠 Now design a house: pick a blueprint in BUILD, then click the grass to place it.', wait:1.2, act:()=>{ demoPlaceHouse(); demo.fastBuild=true; demo.highlight={tx:spot.x,ty:spot.y,w:2,h:2}; }, until:()=> demo.house && demo.house.done},
       {cap:'🧑 A customer wants a cabin. Finished houses earn coins & reputation!', wait:1.0, act:()=> spawnDemoCustomer(), until:()=> demo.house && demo.house.claimed},
-      {cap:'🎮 Your turn! Chop wood, plant saplings, keep the forest healthy and reach 1000 reputation to win. Good luck, builder!', wait:4.5, act:()=>{ demo.highlight=null; }},
+      {cap:'🎮 Your turn! Chop wood in the forest, then press 🏘️ to travel here and build. Reach 1000 reputation to win!', wait:4.5, act:()=>{ travelTo('forest'); demo.foreman.x = S.player.x; demo.foreman.y = S.player.y; demo.highlight=null; }},
     ],
   };
   $('demoBar').classList.remove('hidden');
@@ -1862,7 +1990,7 @@ function demoPlaceHouse(){
 }
 function spawnDemoCustomer(){
   const targetX = Math.max(1, Math.min(COLS-3, demo.spot.x+0.5));
-  S.customers.push({id:S.custId++, bp:'cabin', daysLeft:5, x:Math.max(0.4, targetX-5), y:ROWS-1, state:'enter', t:0,
+  S.customers.push({id:S.custId++, bp:'cabin', daysLeft:5, x:Math.max(0.4, targetX-5), y:ROWS-1, state:'enter', t:0, zone:'cherry',
     shirt:SHIRTS[2], anim:0, targetX});
   sfx('customer');
   refreshCustPanel();
@@ -1916,6 +2044,7 @@ function sfx(kind){
     else if(kind==='customer'){ f=440; dur=0.15; }
     else if(kind==='deny'){ f=110; dur=0.15; type='sawtooth'; }
     else if(kind==='storm'){ f=70; dur=0.5; type='sawtooth'; }
+    else if(kind==='travel'){ f=523; dur=0.28; type='sine'; }
     o.type=type;
     g.gain.setValueAtTime(0.12, t0);
     g.gain.exponentialRampToValueAtTime(0.001, t0+dur);
@@ -1964,6 +2093,11 @@ $('btn-watch-demo').addEventListener('click', ()=>{
   runDemo();     // then the foreman shows how to chop & build
 });
 $('btn-mute').addEventListener('click', ()=>{ muted=!muted; $('btn-mute').textContent = muted?'🔇':'🔊'; });
+$('btn-cherry').addEventListener('click', ()=>{
+  if(!S || winShown) return;
+  if((S.treesCut||0) <= 0){ pushMsg('🪓 Chop a tree first to unlock Cherry Communities!', null, true); sfx('deny'); return; }
+  travelTo(S.zone==='cherry' ? 'forest' : 'cherry');
+});
 window.addEventListener('keydown', (e)=>{
   if(e.key==='Escape'){ selBP=null; refreshBuildMenu(); updateHint(); }
   if(e.key==='1') setTool('axe');
@@ -2049,6 +2183,9 @@ window.__game = {
   actNow,
   player: ()=>S ? S.player : null,
   camera: ()=>({x:cam.x, y:cam.y}),
+  travelTo,
+  zone: ()=>S ? S.zone : null,
+  treesCut: ()=>S ? (S.treesCut||0) : 0,
 };
 </script>
 </body>
