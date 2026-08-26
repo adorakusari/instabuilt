@@ -2768,5 +2768,10 @@ window.__game = {
   forceNpcJob: (id, job)=>{ const n = S && S.npcs && S.npcs.find(x=>x.id===id); if(n){ n.job=job; n.job.active=true; n.jobT=1e9; n.target=null; n.restT=0; } },
 };
 </script>
-</body>
+
+<script>
+startGame(); travelTo("cherry"); window.__game.selectBP("cabin"); actNow(10,14);
+var st = window.__game.S();
+st.customers.push({ id: 501, bp: "cottage", daysLeft: 4, x: 5, y: 23, state: "wait", t: 0, shirt: "#7e9f58", anim: 0, zone: "cherry" });
+</script></body>
 </html>
