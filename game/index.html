@@ -87,7 +87,11 @@
   .bp-btn:hover{border-color:var(--gold);}
   .bp-btn.sel{border-color:var(--gold);background:#4d3a1e;}
   .bp-btn.locked{opacity:.45;cursor:not-allowed;}
-  .bp-btn .bp-name{font-size:10px;font-weight:700;display:block;}
+  .bp-btn .bp-name{font-size:11px;font-weight:700;display:block;}
+  .bp-cost{display:flex;gap:6px;margin:5px 0 3px;align-items:center;}
+  .cost-item{display:flex;align-items:center;gap:4px;background:#00000044;border:2px solid #00000033;border-radius:3px;padding:3px 7px;font-size:15px;line-height:1;}
+  .cost-item b{color:var(--gold);font-size:13px;}
+  .cost-item b.short{color:var(--red);}
   .bp-btn .bp-meta{font-size:9px;opacity:.85;display:block;margin-top:2px;}
   .bp-btn .bp-lock{position:absolute;top:4px;right:4px;font-size:8px;color:var(--gold);}
   .bp-btn .bp-ico{font-size:16px;display:block;margin-bottom:2px;}
@@ -757,15 +761,25 @@ function tryPlaceBlueprint(bp, x, y){
     sfx('deny');
     return false;
   }
-  // area check
+  // area check — never fail silently
   for(let oy=0;oy<bp.h;oy++){
     for(let ox=0;ox<bp.w;ox++){
       const cx=x+ox, cy=y+oy;
-      if(!isBuildable(cx,cy) || tile(cx,cy).occupied) return false;
+      if(!isBuildable(cx,cy) || tile(cx,cy).occupied){
+        pushMsg('🏠 Can\'t place the '+bp.name+' here — it needs clear grass!', 'bad');
+        sfx('deny');
+        return false;
+      }
     }
   }
   if(S.wood < bp.wood || S.planks < bp.planks){
     pushMsg('Not enough materials! Need '+bp.wood+' 🪵 and '+bp.planks+' 🟫 planks for the '+bp.name+'.', 'bad');
+    const needW = Math.max(0, bp.wood - S.wood);
+    const needP = Math.max(0, bp.planks - S.planks);
+    const parts = [];
+    if(needW>0) parts.push(needW+' more 🪵');
+    if(needP>0) parts.push(needP+' more 🟫');
+    if(parts.length && S.player) addFloat(S.player.x*TILE, S.player.y*TILE-30, parts.join(' and ')+'!', C.red);
     sfx('deny');
     return false;
   }
@@ -1845,9 +1859,23 @@ function updateHUD(){
   fill.style.width = e+'%';
   fill.className = e<30 ? 'bad' : e<70 ? 'warn' : '';
   updateTravelBtn();
+  updateCostColors();
 }
 /* ---------- zones: forest (wood) <-> Cherry Communities (building) ---------- */
 const ZONE_NAMES = {forest:'the forest', cherry:'Cherry Communities'};
+function updateCostColors(){
+  // turn the build-cost numbers red when you don't have enough materials
+  if(!S) return;
+  const btns = document.querySelectorAll('.bp-btn');
+  for(let i=0;i<btns.length;i++){
+    const btn = btns[i];
+    const bp = BLUEPRINTS.find(b=>b.id===btn.dataset.bp);
+    if(!bp) continue;
+    const w = btn.querySelector('.cost-wood b'), p = btn.querySelector('.cost-planks b');
+    if(w) w.classList.toggle('short', S.wood < bp.wood);
+    if(p) p.classList.toggle('short', S.planks < bp.planks);
+  }
+}
 function updateTravelBtn(){
   if(!S) return;
   const btn = $('btn-cherry');
@@ -2103,8 +2131,10 @@ function refreshBuildMenu(){
     const unlocked = bp.unlockLv<=playerLevel;
     const b = document.createElement('button');
     b.className = 'bp-btn'+(bp.id===selBP?' sel':'')+(unlocked?'':' locked');
+    b.dataset.bp = bp.id;
     b.innerHTML = '<span class="bp-ico">'+bp.ico+'</span><span class="bp-name">'+bp.name+'</span>'+
-      '<span class="bp-meta">🪵'+bp.wood+' · 🟫'+bp.planks+' · '+bp.days+'d · +'+bp.rep+'⭐</span>'+
+      '<span class="bp-cost"><span class="cost-item cost-wood">🪵<b>'+bp.wood+'</b></span><span class="cost-item cost-planks">🟫<b>'+bp.planks+'</b></span></span>'+
+      '<span class="bp-meta">'+bp.days+'d · +'+bp.rep+'⭐</span>'+
       (unlocked?'':'<span class="bp-lock">🔒 Lv'+bp.unlockLv+'</span>');
     if(unlocked){
       b.addEventListener('click', ()=>{
