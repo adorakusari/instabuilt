@@ -465,6 +465,7 @@
     <p>🔨 <b>Hammer</b> — click a house under construction to boost it +20% for 5 wood (once per house per day).</p>
     <p>🏘️ <b>Cherry Communities</b> — chop your first tree and the <b>🏘️ travel button</b> unlocks. It takes you to an open meadow with the same graphics — <b>houses can only be built there</b>. Travel back to the forest to chop more wood.</p>
     <p>👷 <b>Your crew</b> — 🪚 the <b>Carpenter</b> walks the village and speeds up house builds, 🌳 the <b>Forester</b> plants trees across the forest, 🧑‍🌾 the <b>Farmer</b> grows crops that are sold for coins every morning. Watch them work — they talk to each other and to you!</p>
+    <p>🦌 <b>Wildlife</b> — deer, rabbits, birds, squirrels and foxes roam the world. Each one moves its own way, and they'll run off if you get too close!</p>
     <p>🏠 <b>Build</b> — in Cherry Communities pick a blueprint, choose a roof color, click grass to place. Builders work automatically; weather &amp; night affect speed.</p>
     <p>🧑 <b>Customers</b> — they want specific houses. Complete them before they leave to earn coins &amp; reputation.</p>
     <p>🏆 <b>The ultimate goal</b> — build the world's first <b>completely sustainable wooden city</b>: <b>8 houses</b> built, <b>1000 reputation</b>, and the <b>forest above 90%</b>. Keep the forest healthy while the city grows — that's the InstaBuilt way!</p>
@@ -581,6 +582,43 @@ const SPR_PLAYER = {
 };
 const SHIRTS = ['#d95d39','#3f7dbf','#8fbf3f','#b85cd9','#e8b83a','#4fbfa5'];
 
+/* ---------- wildlife sprites (12px wide; chars per species) ---------- */
+const SPR_ANIMALS = {
+  deer: {
+    idle: ['......aaa...','......aaa...','......ee....','.....dddd...','....dddddd..','...ddddddd..','..dddddddd..','..dllldddd..','...nn..nn...','..nn....nn..'],
+    walkA:['......aaa...','......aaa...','......ee....','.....dddd...','....dddddd..','...ddddddd..','..dddddddd..','..dllldddd..','..nn...nn...','...nn..nn...'],
+    walkB:['......aaa...','......aaa...','......ee....','.....dddd...','....dddddd..','...ddddddd..','..dddddddd..','..dllldddd..','...nn..nn...','..nn....nn..']
+  },
+  rabbit: {
+    idle: ['......ee....','......ee....','.....rrrr...','....rrrrrr..','...rrwwrrr..','....rrrr....','...nn..nn...'],
+    walkA:['......ee....','......ee....','.....rrrr...','....rrrrrr..','...rrwwrrr..','....rrrr....','..nn...nn...'],
+    walkB:['......ee....','......ee....','.....rrrr...','....rrrrrr..','...rrwwrrr..','....rrrr....','....nnnn....']
+  },
+  bird: {
+    idle: ['.....bbbb...','..ttbbbbbb.o','..ttbwbbbb..','.....bbbbb..','......bb....','.....nn.....','..n...n.....'],
+    walkA:['.....bbbb...','..ttbbbbbb.o','..ttbwbbbb..','.....bbbbb..','......bb....','.....nn.....','..n....n....'],
+    walkB:['.....bbbb...','..ttbbbbbb.o','..ttbwbbbb..','.....bbbbb..','......bb....','.....nn.....','..n...n.....']
+  },
+  squirrel: {
+    idle: ['..tt........','..tt........','..ttt..e....','..ttttqqq...','...ttqqqqq..','...qqqqqq...','....qllq....','...nn..nn...'],
+    walkA:['..tt........','..tt........','..ttt..e....','..ttttqqq...','...ttqqqqq..','...qqqqqq...','....qllq....','..nn...nn...'],
+    walkB:['..tt........','..tt........','..ttt..e....','..ttttqqq...','...ttqqqqq..','...qqqqqq...','....qllq....','...nn..nn...']
+  },
+  fox: {
+    idle: ['...ee...ee..','...ee...ee..','...ffffff...','..fffffffw..','.wfffffffw..','.ttffffffw..','.tttfffff...','...nn.nnn...','..dd..dd....'],
+    walkA:['...ee...ee..','...ee...ee..','...ffffff...','..fffffffw..','.wfffffffw..','.ttffffffw..','.tttfffff...','..nn...nn...','...dd..dd...'],
+    walkB:['...ee...ee..','...ee...ee..','...ffffff...','..fffffffw..','.wfffffffw..','.ttffffffw..','.tttfffff...','...nn..nn...','..dd...dd...']
+  }
+};
+/* speed (tiles/s), flee speed, shy distance, roam radius, pause range, draw scale */
+const ANIMAL_DEFS = {
+  deer:    {name:'Deer',    spd:1.4, flee:3.4, shy:3.2, roam:7,  pause:[2,6],    scale:2,   colors:{a:'#9a7a4c', e:'#7d4a38', d:'#a9744f', l:'#e1c9ac', n:'#4a3a30'}},
+  rabbit:  {name:'Rabbit',  spd:2.8, flee:4.4, shy:2.2, roam:4,  pause:[0.8,3],  scale:1.5, colors:{e:'#243231', r:'#a8917d', w:'#f0e8dd', n:'#e8a0a0'}},
+  bird:    {name:'Bird',    spd:2.4, flee:4.8, shy:1.8, roam:6,  pause:[0.4,1.6],scale:1.5, colors:{b:'#d95d39', w:'#f0e2c4', o:'#f2c94c', n:'#4a3a30', t:'#b54a2c'}},
+  squirrel:{name:'Squirrel',spd:2.2, flee:3.6, shy:1.6, roam:3,  pause:[1,3],    scale:1.5, colors:{e:'#243231', q:'#c37759', l:'#e1c9ac', t:'#a9654c', n:'#4a3a30'}},
+  fox:     {name:'Fox',     spd:2.0, flee:3.8, shy:2.8, roam:8,  pause:[2,5],    scale:2,   colors:{e:'#243231', f:'#d96a3a', w:'#e7e7dd', t:'#c75a2e', n:'#4a3a30', d:'#3a2c24'}},
+};
+
 /* ---------- state ---------- */
 let S = null;
 let tool = 'axe';
@@ -617,7 +655,7 @@ function newGame(){
     day:1, phase:0, phaseT:0,
     wood:25, planks:10, coins:50, rep:0,
     weather:'sunny', nextWeather:'cloudy',
-    grid:[], zone:'forest', treesCut:0, zones:null, food:0, npcs:null,
+    grid:[], zone:'forest', treesCut:0, zones:null, food:0, npcs:null, animals:null,
     houses:[], customers:[], custId:1,
     msgs:[], forestStart:0, daysSinceCust:0, stormMsgShown:false,
     unlocked:[1], boostUsed:0, sawing:null, spawn:null, spawnHintT:8,
@@ -626,6 +664,7 @@ function newGame(){
   S.zones = { forest:{grid:S.grid, player:null}, cherry:{grid:genCherryMap(), player:null} };
   S.grid = S.zones.forest.grid;
   S.npcs = spawnNPCs();
+  S.animals = spawnAnimals();
   S.forestStart = countForest();
   S.player = {x:S.spawn.x+0.5, y:S.spawn.y+2, target:null, anim:0};
   S.pending = null;
@@ -840,7 +879,7 @@ function saveGame(){
       weather:S.weather, nextWeather:S.nextWeather, grid:S.grid, houses:S.houses,
       customers:S.customers, custId:S.custId, forestStart:S.forestStart,
       daysSinceCust:S.daysSinceCust, unlocked:S.unlocked, msgs:S.msgs.slice(0,6),
-      zone:S.zone, zones:S.zones, treesCut:S.treesCut||0, won: !!winShown};
+      zone:S.zone, zones:S.zones, treesCut:S.treesCut||0, won: !!winShown, animals:S.animals};
     localStorage.setItem(SAVE_KEY, JSON.stringify(d));
   }catch(e){ /* ignore */ }
 }
@@ -856,7 +895,7 @@ function loadSave(){
     const zone = d.zone==='cherry' ? 'cherry' : 'forest';
     S = {day:d.day, phase:d.phase||0, phaseT:0, wood:d.wood, planks:(typeof d.planks==='number'?d.planks:10), coins:d.coins, rep:d.rep,
       weather:d.weather||'sunny', nextWeather:d.nextWeather||'cloudy', grid:zones[zone].grid,
-      zone, zones, treesCut:d.treesCut||0, food:d.food||0, npcs:d.npcs||null,
+      zone, zones, treesCut:d.treesCut||0, food:d.food||0, npcs:d.npcs||null, animals:d.animals||null,
       houses:d.houses||[], customers:d.customers||[], custId:d.custId||1,
       msgs:d.msgs||[], forestStart:d.forestStart||countForestFromGrid(zones.forest.grid),
       daysSinceCust:d.daysSinceCust||0, unlocked:d.unlocked||[1], stormMsgShown:false, boostUsed:0};
@@ -868,6 +907,7 @@ function loadSave(){
     S.sawing = null;
     S.spawnHintT = 0;
     if(!S.npcs || !S.npcs.length) S.npcs = spawnNPCs();
+    if(!S.animals || !S.animals.length) S.animals = spawnAnimals();
     return true;
   }catch(e){ return false; }
 }
@@ -1333,6 +1373,7 @@ function update(dt){
   if(flash>0) flash = Math.max(0, flash - dt*1.5);
   if(paused || !S) return;
   updateNPCs(dt);
+  updateAnimals(dt);
   if(demo){
     updateDemo(dt);
     updateParticles(dt);
@@ -1887,6 +1928,7 @@ function drawMap(){
   }
   for(const c of S.customers){ if((c.zone||'forest')===S.zone) drawPerson(c); }
   for(const n of S.npcs){ if(n.zone===S.zone) drawNPC(n); }
+  if(S.animals) for(const a of S.animals){ if(a.zone===S.zone) drawAnimal(a); }
   drawPlayer();
 }
 function drawWeather(){
@@ -2363,6 +2405,123 @@ function drawNPC(n){
     ctx.fillText(n.sayText, bx, by-4);
   }
 }
+/* ---------- wildlife: roaming animals ---------- */
+function animalWalkable(zone, x, y){
+  const c = zTile(zone, x, y);
+  return !!c && (c.t==='grass'||c.t==='path'||c.t==='sapling'||c.t==='stump') && !c.occupied;
+}
+function findAnimalSpot(zone){
+  const g = zone==='cherry' ? S.zones.cherry.grid : S.zones.forest.grid;
+  for(let i=0;i<80;i++){
+    const x = Math.floor(Math.random()*COLS), y = Math.floor(Math.random()*ROWS);
+    const c = g[y*COLS+x];
+    if(!c || (c.t!=='grass'&&c.t!=='path'&&c.t!=='sapling'&&c.t!=='stump') || c.occupied) continue;
+    if(zone==='forest'){
+      if(Math.abs(x-S.spawn.x)<=4 && Math.abs(y-S.spawn.y)<=4) continue;   // keep the home clearing clear
+    } else {
+      if(Math.hypot(x-20, y-14) < 4) continue;      // stay off the main build square
+      if(Math.hypot(x-3, y-21) < 4) continue;       // and the south gate
+    }
+    return {x, y};
+  }
+  return null;
+}
+function nearestWalkableSpot(zone, tx, ty, r){
+  const gx = Math.floor(tx), gy = Math.floor(ty);
+  for(let rad=0;rad<=r;rad++){
+    for(let dy=-rad;dy<=rad;dy++) for(let dx=-rad;dx<=rad;dx++){
+      if(Math.max(Math.abs(dx),Math.abs(dy))!==rad) continue;
+      if(animalWalkable(zone, gx+dx, gy+dy)) return {x:gx+dx, y:gy+dy};
+    }
+  }
+  return null;
+}
+function spawnAnimals(){
+  const list = [];
+  const plan = [['deer','forest'],['deer','forest'],['rabbit','forest'],['rabbit','forest'],['rabbit','cherry'],
+    ['bird','forest'],['bird','forest'],['bird','cherry'],['squirrel','forest'],['squirrel','cherry'],
+    ['fox','forest'],['fox','cherry']];
+  for(const [kind, zone] of plan){
+    const spot = findAnimalSpot(zone);
+    if(!spot) continue;
+    list.push({kind, zone, x:spot.x+0.5, y:spot.y+0.5, home:{x:spot.x, y:spot.y},
+      target:null, restT:Math.random()*2, fleeT:0, anim:Math.random()*3, facing:Math.random()<0.5?1:-1});
+  }
+  return list;
+}
+function pickAnimalTarget(a){
+  const def = ANIMAL_DEFS[a.kind];
+  let spot = null;
+  if(a.fleeT>0 && S.player && !demo){
+    // run away from the player
+    const ang = Math.atan2(a.y-S.player.y, a.x-S.player.x) + (Math.random()-0.5)*0.8;
+    const R = 3 + Math.random()*def.roam;
+    spot = nearestWalkableSpot(a.zone, a.x+Math.cos(ang)*R, a.y+Math.sin(ang)*R, 4);
+  } else {
+    const fly = a.kind==='bird' && Math.random()<0.12;      // birds occasionally take a long flight
+    const R = fly ? def.roam*2.2 : def.roam;
+    const ang = Math.random()*Math.PI*2;
+    spot = nearestWalkableSpot(a.zone, a.home.x+Math.cos(ang)*Math.random()*R, a.home.y+Math.sin(ang)*Math.random()*R, 4);
+  }
+  if(spot) a.target = {x:spot.x+0.5, y:spot.y+0.5};
+  else a.restT = 1.5;
+}
+function moveAnimal(a, dt){
+  const def = ANIMAL_DEFS[a.kind];
+  const spd = (a.fleeT>0 ? def.flee : def.spd) * dt;
+  const dx = a.target.x-a.x, dy = a.target.y-a.y;
+  const d = Math.hypot(dx,dy);
+  if(d <= 0.08){
+    a.x = a.target.x; a.y = a.target.y; a.target = null;
+    a.fleeT = 0;
+    a.restT = def.pause[0] + Math.random()*(def.pause[1]-def.pause[0]);
+    return;
+  }
+  const step = Math.min(d, spd);
+  const nx = a.x + dx/d*step, ny = a.y + dy/d*step;
+  const ok = (x,y)=> animalWalkable(a.zone, Math.floor(x), Math.floor(y));
+  if(ok(nx,ny)){ a.x=nx; a.y=ny; }                 // full move
+  else if(ok(nx,a.y)){ a.x=nx; }                   // slide horizontally
+  else if(ok(a.x,ny)){ a.y=ny; }                   // slide vertically
+  else { a.target=null; a.restT=0.6; }             // stuck against an obstacle: try again soon
+  if(Math.abs(dx)>0.02) a.facing = dx>0?1:-1;
+}
+function updateAnimals(dt){
+  if(!S || !S.animals) return;
+  for(const a of S.animals){
+    if(a.zone!==S.zone) continue;
+    const def = ANIMAL_DEFS[a.kind];
+    a.anim += dt;
+    // if a building was placed on top of us, pop out to the nearest free tile
+    if(!animalWalkable(a.zone, Math.floor(a.x), Math.floor(a.y))){
+      const spot = nearestWalkableSpot(a.zone, a.x, a.y, 6);
+      if(spot){ a.x=spot.x+0.5; a.y=spot.y+0.5; a.target=null; a.restT=0.5; }
+      else continue;
+    }
+    // flee when the player gets too close
+    if(S.player && !demo){
+      const pd = Math.hypot(S.player.x-a.x, S.player.y-a.y);
+      if(pd < def.shy) a.fleeT = 3;
+      else if(a.fleeT>0) a.fleeT = Math.max(0, a.fleeT-dt);
+    }
+    if(a.restT>0){ a.restT -= dt; if(a.restT<=0) pickAnimalTarget(a); }
+    else if(a.target) moveAnimal(a, dt);
+    else pickAnimalTarget(a);
+  }
+}
+function drawAnimal(a){
+  if(!S || a.zone!==S.zone) return;
+  const def = ANIMAL_DEFS[a.kind];
+  const spr = SPR_ANIMALS[a.kind];
+  const px = Math.round(a.x*TILE), py = Math.round(a.y*TILE);
+  const moving = !!a.target;
+  const frame = moving ? ((Math.floor(a.anim*8)%2===0) ? spr.walkA : spr.walkB) : spr.idle;
+  const w = spr.idle[0].length, h = spr.idle.length;
+  const hop = (moving && a.kind==='bird' && Math.floor(a.anim*8)%2===1) ? -1 : 0;
+  ctx.fillStyle = 'rgba(30,42,36,0.3)';
+  ctx.beginPath(); ctx.ellipse(px, py+2, 4.5*def.scale, 1.8*def.scale, 0, 0, Math.PI*2); ctx.fill();
+  drawSprite(frame, px - Math.round(w*def.scale/2), py - Math.round(h*def.scale) + 1 + hop, def.colors, def.scale, a.facing<0);
+}
 function refreshBuildMenu(){
   const grid = $('bpGrid');
   grid.innerHTML = '';
@@ -2793,6 +2952,7 @@ window.__game = {
   zone: ()=>S ? S.zone : null,
   treesCut: ()=>S ? (S.treesCut||0) : 0,
   npcs: ()=>S ? S.npcs : null,
+  animals: ()=>S ? S.animals : null,
   goal: ()=> goalState(),
   forceNpcJob: (id, job)=>{ const n = S && S.npcs && S.npcs.find(x=>x.id===id); if(n){ n.job=job; n.job.active=true; n.jobT=1e9; n.target=null; n.restT=0; } },
 };
