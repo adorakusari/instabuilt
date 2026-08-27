@@ -2193,6 +2193,7 @@ function travelTo(zone){
   cam.y = Math.max(0, Math.min(H-VH, S.player.y*TILE - VH/2));
   flash = 0.45;
   sfx('travel');
+  musicRestart();
   pushMsg(zone==='cherry' ? '🏘️ Welcome to Cherry Communities — your building zone!' : '🌲 Back in the forest — chop trees for wood!', 'gold');
   refreshBuildMenu(); updateHUD(); updateHint();
 }
@@ -2605,6 +2606,7 @@ function startGame(){
   showScreen('none');
   setTool('axe');
   paused = false;
+  musicRestart();
   fitCanvas();
   render();
   pushMsg('🪓 Welcome to your forest! Click a tree with the Axe to chop wood.', 'gold');
@@ -2791,6 +2793,7 @@ function audioInit(){
   try{
     if(typeof AudioContext!=='undefined') actx = new AudioContext();
     else if(typeof webkitAudioContext!=='undefined') actx = new webkitAudioContext();
+    if(actx){ musicRestart(); if(!musicTimer) musicTimer = setInterval(musicTick, 120); }
   }catch(e){ actx = null; }
 }
 function sfx(kind){
@@ -2816,6 +2819,66 @@ function sfx(kind){
     o.frequency.setValueAtTime(f, t0);
     o.start(t0); o.stop(t0+dur);
   }catch(e){}
+}
+
+/* ---------- background music (generative WebAudio loop, no assets) ---------- */
+const MNOTE = {C2:65.41,D2:73.42,E2:82.41,F2:87.31,G2:98.00,A2:110.00,B2:123.47,
+  C3:130.81,D3:146.83,E3:164.81,F3:174.61,G3:196.00,A3:220.00,B3:246.94,
+  C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392.00,A4:440.00,B4:493.88,
+  C5:523.25,D5:587.33,E5:659.25,F5:698.46,G5:783.99,A5:880.00,B5:987.77};
+const MUSIC_STEP = 60/92/2;            // 8th note at 92 BPM
+const MUSIC_LOOP_BEATS = 32;           // 4 bars of 8th notes
+const MUSIC_LOOP_LEN = MUSIC_STEP*MUSIC_LOOP_BEATS;
+/* events: {b: step index, f: note name, d: duration in steps} */
+const MUSIC = {
+  forest: {   // calm woodland: C - Am - F - G with a gentle pentatonic melody
+    bass:    [{b:0,f:'C3',d:8},{b:8,f:'A2',d:8},{b:16,f:'F2',d:8},{b:24,f:'G2',d:8}],
+    melody:  [{b:0,f:'E4',d:2},{b:2,f:'G4',d:2},{b:4,f:'A4',d:2},{b:6,f:'G4',d:2},
+              {b:8,f:'E4',d:2},{b:10,f:'C4',d:2},{b:12,f:'D4',d:2},{b:14,f:'E4',d:2},
+              {b:16,f:'G4',d:2},{b:18,f:'A4',d:2},{b:20,f:'C5',d:4},
+              {b:24,f:'D4',d:2},{b:26,f:'E4',d:2},{b:28,f:'D4',d:2},{b:30,f:'C4',d:2}],
+    sparkle: [{b:4,f:'E5',d:2},{b:12,f:'C5',d:2},{b:20,f:'D5',d:2},{b:28,f:'A4',d:2}]
+  },
+  cherry: {   // brighter village tune: C - G - Am - F, music-box feel
+    bass:    [{b:0,f:'C3',d:8},{b:8,f:'G2',d:8},{b:16,f:'A2',d:8},{b:24,f:'F2',d:8}],
+    melody:  [{b:0,f:'E5',d:1},{b:1,f:'G4',d:1},{b:2,f:'C5',d:2},{b:4,f:'E4',d:1},{b:5,f:'G4',d:1},{b:6,f:'C5',d:2},
+              {b:8,f:'D5',d:1},{b:9,f:'B4',d:1},{b:10,f:'G4',d:2},{b:12,f:'D4',d:1},{b:13,f:'G4',d:1},{b:14,f:'B4',d:2},
+              {b:16,f:'C5',d:1},{b:17,f:'A4',d:1},{b:18,f:'E4',d:2},{b:20,f:'A4',d:1},{b:21,f:'C5',d:1},{b:22,f:'E5',d:2},
+              {b:24,f:'F5',d:1},{b:25,f:'C5',d:1},{b:26,f:'A4',d:2},{b:28,f:'F4',d:1},{b:29,f:'A4',d:1},{b:30,f:'C5',d:2}],
+    sparkle: [{b:2,f:'G5',d:2},{b:10,f:'E5',d:2},{b:18,f:'C5',d:2},{b:26,f:'A4',d:2}]
+  }
+};
+let musicTimer = null, musicLoopT = 0, musicNextT = 0;
+function musicNote(freq, t, dur, gain, type){
+  try{
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type||'triangle'; o.frequency.value = freq;
+    o.connect(g); g.connect(actx.destination);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t+0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+    o.start(t); o.stop(t+dur+0.1);
+  }catch(e){}
+}
+function musicRestart(){
+  if(!actx) return;
+  musicLoopT = actx.currentTime + 0.1;
+  musicNextT = musicLoopT;
+}
+function musicTick(){
+  if(!actx) return;
+  if(muted || paused || !S){ musicNextT = Math.max(musicNextT, actx.currentTime+0.05); return; }
+  const track = MUSIC[S.zone==='cherry' ? 'cherry' : 'forest'];
+  const ahead = actx.currentTime + 0.25;
+  while(musicNextT < ahead){
+    let step = Math.floor((musicNextT - musicLoopT)/MUSIC_STEP);
+    while(step >= MUSIC_LOOP_BEATS){ musicLoopT += MUSIC_LOOP_LEN; step -= MUSIC_LOOP_BEATS; }
+    const t = musicNextT;
+    for(const ev of track.bass)    if(ev.b===step) musicNote(MNOTE[ev.f], t, MUSIC_STEP*ev.d*0.9, 0.06, 'sine');
+    for(const ev of track.melody)  if(ev.b===step) musicNote(MNOTE[ev.f], t, MUSIC_STEP*ev.d*0.85, 0.05, 'triangle');
+    for(const ev of track.sparkle) if(ev.b===step) musicNote(MNOTE[ev.f], t, MUSIC_STEP*ev.d*0.8, 0.022, 'sine');
+    musicNextT += MUSIC_STEP;
+  }
 }
 
 /* ---------- input ---------- */
