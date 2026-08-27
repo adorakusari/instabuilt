@@ -119,6 +119,7 @@
   #msgLog{display:flex;flex-direction:column;gap:3px;max-height:96px;overflow:hidden;}
   .msg{font-size:10px;opacity:.9;border-left:3px solid var(--line);padding-left:6px;}
   .msg.good{border-color:var(--green);}
+  .msg.eco{border-color:#8fbf3f;}
   .msg.bad{border-color:var(--red);}
   .msg.gold{border-color:var(--gold);}
   #hintBar{
@@ -1315,6 +1316,7 @@ function completeHouse(h){
   addFloat(h.x*TILE+(houseBP(h).w*TILE)/2, h.y*TILE-12, '✨ Built!', C.gold);
   sfx('done');
   pushMsg('✨ Your '+houseBP(h).name+' is finished!', 'good');
+  if(Math.random()<0.4) showEcoMsg();   // random eco shout-out right after finishing
   const cust = S.customers.find(c=>c.state==='wait' && c.bp===h.bp);
   if(cust) claimHouse(h, cust);
   refreshCustPanel();
@@ -1355,6 +1357,7 @@ function update(dt){
     h.progress = Math.min(1, h.progress + dt/(houseBP(h).days*PHASE_SECONDS*4) * wm * pm);
     if(h.progress>=1 && !h.done) completeHouse(h);
   }
+  updateEcoMsgs(dt);
   updateCustomers(dt);
   // claim any waiting customer whose requested house already stands empty
   // (covers save/load edge: house finished while a customer was already waiting)
@@ -2046,6 +2049,32 @@ function pushMsg(text, kind, quiet){
 function renderMsgLog(){
   const el = $('msgLog');
   el.innerHTML = msgQueue.slice(-6).map(m=>'<div class="msg '+(m.kind||'')+'">'+m.text+'</div>').join('');
+}
+/* ---------- eco reminders while building ---------- */
+const ECO_MSGS = [
+  '🌱 Great choice! This home is built with renewable wood.',
+  '🌲 You\'re building while helping protect the environment!',
+  '🏡 Another eco-friendly home completed!',
+  '🍃 Your sustainable choices are making a difference.',
+  '💚 Wood is the only building material that grows back.',
+  '🌳 Sustainably sourced wood — good for the forest, good for you.'
+];
+let ecoMsgTimer = 8 + Math.random()*12;   // first message comes soon after building starts
+let lastEcoAt = -99999;                    // guard: never two eco messages back-to-back
+function showEcoMsg(){
+  if(Date.now()-lastEcoAt < 10000) return;
+  lastEcoAt = Date.now();
+  pushMsg(ECO_MSGS[(Math.random()*ECO_MSGS.length)|0], 'eco');
+}
+function updateEcoMsgs(dt){
+  if(!S || S.zone!=='cherry') return;              // only while in the building zone
+  const building = S.houses.some(h=>!h.done);       // a house is placed and unfinished
+  if(!building){ ecoMsgTimer = 8 + Math.random()*12; return; }
+  ecoMsgTimer -= dt;
+  if(ecoMsgTimer<=0){
+    showEcoMsg();
+    ecoMsgTimer = 25 + Math.random()*45;            // random 25–70s gap, never fixed
+  }
 }
 const WICON = {sunny:'sun', cloudy:'cloud', rain:'rain', storm:'storm'};
 const PICON = ['sun','sun','sunset','moon']; // morning, noon, evening, night
